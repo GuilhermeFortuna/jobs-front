@@ -1,0 +1,21 @@
+repos:
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: pnpm exec prettier --write
+        language: system
+        types_or: [css, javascript, jsx, json, markdown, ts, tsx, yaml]
+      - id: eslint
+        name: eslint
+        entry: pnpm exec eslint --fix
+        language: system
+        files: \.(js|jsx|mjs|cjs|ts|tsx)$
+        exclude: ^next-env\.d\.ts$
+      - id: ci
+        name: ci
+        entry: ./ci.sh
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true

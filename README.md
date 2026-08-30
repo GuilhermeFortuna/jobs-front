@@ -16,6 +16,7 @@ This repo is scaffold-only so far: a minimal shell page and API base URL helper 
 
 - Node 22+
 - pnpm 11+
+- Python 3.12+ with `pip` or [uv](https://docs.astral.sh/uv/) (for pre-commit hooks)
 
 ## Local setup
 
@@ -42,6 +43,28 @@ To auto-fix formatting locally (not used in CI):
 
 ```bash
 pnpm format
+```
+
+### Git hooks
+
+Install [pre-commit](https://pre-commit.com/) and register commit + push hooks:
+
+```bash
+uv venv
+uv pip install -r requirements-dev.txt
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+Hook behavior:
+
+- **pre-commit**: Prettier (`--write`) and ESLint (`--fix`) on staged files
+- **pre-push**: `./ci.sh` (full CI suite)
+
+Run hooks manually:
+
+```bash
+uv run pre-commit run --all-files
+uv run pre-commit run --hook-stage pre-push --all-files
 ```
 
 ### Scripts
