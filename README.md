@@ -27,12 +27,27 @@ pnpm dev
 
 App: [http://localhost:3000](http://localhost:3000)
 
+### CI
+
+Run the same validation as GitHub Actions (requires `pnpm install` first):
+
+```bash
+./ci.sh          # full suite
+./ci.sh lint
+./ci.sh format
+./ci.sh build
+```
+
+To auto-fix formatting locally (not used in CI):
+
+```bash
+pnpm format
+```
+
 ### Scripts
 
 ```bash
-pnpm lint
-pnpm format
-pnpm format:check
+pnpm dev
 pnpm build
 ```
 
