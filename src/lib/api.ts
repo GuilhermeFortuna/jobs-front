@@ -24,6 +24,11 @@ export type AlternateSource = {
   apply_url: string | null;
 };
 
+export type ProviderDescriptor = {
+  key: string;
+  display_name: string;
+};
+
 export type ProviderSearchStatus = {
   provider: string;
   status: "loading" | "complete" | "failed";
@@ -144,6 +149,8 @@ export const api = {
   health: () => request<{ status: string }>("/health"),
 
   profiles: () => request<Profile[]>("/profiles"),
+
+  providers: () => request<ProviderDescriptor[]>("/providers"),
 
   getProfile: (profileId: string) => request<Profile>(`/profiles/${profileId}`),
 

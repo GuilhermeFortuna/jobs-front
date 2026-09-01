@@ -6,6 +6,7 @@ import {
   api,
   type LibraryState,
   type Profile,
+  type ProviderDescriptor,
   type ProviderSearchStatus,
   type SearchFilters,
   type SearchPage,
@@ -88,6 +89,7 @@ export function useJobScout() {
   const pollGeneration = useRef(0);
   const initGeneration = useRef(0);
   const selectedRef = useRef<DisplayJob | null>(null);
+  const [providers, setProviders] = useState<ProviderDescriptor[]>([]);
   const previousProfileId = useRef<string | null>(null);
   const lastAnnouncementKey = useRef("");
 
@@ -460,6 +462,21 @@ export function useJobScout() {
   }, [loadLibrary, refreshDefaultSearch, view]);
 
   useEffect(() => {
+    let active = true;
+    // Advisory only: the filter panel falls back to the known provider list,
+    // so a failure here must never block boot.
+    void api
+      .providers()
+      .then((values) => {
+        if (active) setProviders(values);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const generation = ++initGeneration.current;
     let active = true;
 
@@ -570,6 +587,7 @@ export function useJobScout() {
   }, [booted, cancelPolling, profile, runSearch]);
 
   return {
+    providers,
     profiles,
     profile,
     view,

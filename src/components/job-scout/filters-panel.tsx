@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SearchFilters } from "@/lib/api";
+import type { ProviderDescriptor, SearchFilters } from "@/lib/api";
 import { DEFAULT_FILTERS } from "@/hooks/use-job-scout";
 import { formatProviderName, KNOWN_PROVIDER_KEYS } from "@/lib/providers";
 
@@ -22,7 +22,20 @@ type FiltersPanelProps = {
   onSearch: () => void;
   onSaveDefaults: () => void;
   disabled?: boolean;
+  /** Enabled providers from the API. Undefined while loading. */
+  providers?: ProviderDescriptor[];
 };
+
+/** Never leave the provider filter empty if the API is slow or unreachable. */
+function providerOptions(
+  providers: ProviderDescriptor[] | undefined,
+): ProviderDescriptor[] {
+  if (providers && providers.length > 0) return providers;
+  return KNOWN_PROVIDER_KEYS.map((key) => ({
+    key,
+    display_name: formatProviderName(key),
+  }));
+}
 
 function FilterGroup({
   title,
@@ -60,6 +73,7 @@ export function FiltersPanel({
   onSearch,
   onSaveDefaults,
   disabled,
+  providers,
 }: FiltersPanelProps) {
   const toggle = (
     field: "employment_types" | "seniority" | "providers",
@@ -141,7 +155,7 @@ export function FiltersPanel({
       />
       <fieldset className="space-y-2">
         <legend className="mb-2 text-sm font-semibold">Providers</legend>
-        {KNOWN_PROVIDER_KEYS.map((key) => (
+        {providerOptions(providers).map(({ key, display_name }) => (
           <label
             key={key}
             className="flex cursor-pointer items-center gap-2.5 text-sm text-[#4e5872]"
@@ -149,9 +163,8 @@ export function FiltersPanel({
             <Checkbox
               checked={filters.providers.includes(key)}
               onCheckedChange={() => toggle("providers", key)}
-              aria-label={`Filter to ${formatProviderName(key)}`}
             />
-            <span className="break-words">{formatProviderName(key)}</span>
+            <span className="break-words">{display_name}</span>
           </label>
         ))}
         <p className="text-xs leading-5 text-[#7a849c]">

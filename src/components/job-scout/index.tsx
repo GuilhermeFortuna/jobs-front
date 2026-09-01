@@ -67,6 +67,7 @@ export function JobScout() {
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-[272px] shrink-0 overflow-y-auto border-r bg-white px-5 py-6 lg:block">
           <FiltersPanel
+            providers={scout.providers}
             filters={scout.filters}
             setFilters={scout.setFilters}
             onSearch={() => void scout.runSearch()}
@@ -123,6 +124,7 @@ export function JobScout() {
                   </SheetHeader>
                   <div className="mt-5">
                     <FiltersPanel
+                      providers={scout.providers}
                       filters={scout.filters}
                       setFilters={scout.setFilters}
                       onSearch={() => void scout.runSearch()}

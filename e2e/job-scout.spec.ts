@@ -43,6 +43,10 @@ async function installApiMock(
           return json(data.profileList);
         }
 
+        if (url.endsWith("/providers") && method === "GET") {
+          return json(data.providerList);
+        }
+
         if (url.includes("/default-search/refresh") && method === "POST") {
           return json(data.searchRefreshComplete, 202);
         }
@@ -88,6 +92,7 @@ async function installApiMock(
     },
     {
       profileList: [fixtures.profile],
+      providerList: fixtures.providerList,
       searchRefreshComplete:
         options?.searchRefreshComplete ?? fixtures.searchRefreshComplete,
       searchComplete: options?.searchComplete ?? fixtures.searchComplete,
@@ -251,4 +256,28 @@ test("consolidated detail exposes every source and saves once", async ({
   await expect(page.getByText("Saved to your library")).toBeVisible({
     timeout: 10_000,
   });
+});
+
+test("provider filter offers only the providers the API reports", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Staff Engineer" }).first(),
+  ).toBeVisible({ timeout: 15_000 });
+
+  if (testInfo.project.name === "mobile") {
+    await page.getByRole("button", { name: "Open filters" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Search filters" }),
+    ).toBeVisible();
+  }
+
+  await expect(
+    page.getByRole("checkbox", { name: "Himalayas" }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Remote OK" }).first(),
+  ).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Jobicy" })).toHaveCount(0);
 });

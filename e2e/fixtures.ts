@@ -50,6 +50,12 @@ const providerStatuses = [
 ];
 
 export const fixtures = {
+  // Jobicy is deliberately absent: the deployment has it disabled, so the
+  // provider filter must not offer it.
+  providerList: [
+    { key: "himalayas", display_name: "Himalayas" },
+    { key: "remoteok", display_name: "Remote OK" },
+  ],
   profile: {
     id: PROFILE_ID,
     display_name: "Gui",
