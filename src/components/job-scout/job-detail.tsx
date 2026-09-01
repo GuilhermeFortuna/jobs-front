@@ -12,6 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { isSavedJob, money, type DisplayJob } from "@/lib/job-utils";
+import {
+  formatProviderName,
+  hasRemoteOkSource,
+  REMOTEOK_ATTRIBUTION,
+} from "@/lib/providers";
 
 type JobDetailProps = {
   job: DisplayJob;
@@ -19,10 +24,59 @@ type JobDetailProps = {
   onRemove: () => void;
 };
 
+function SourceLinks({
+  provider,
+  jobUrl,
+  applyUrl,
+  isPrimary,
+}: {
+  provider: string;
+  jobUrl: string;
+  applyUrl?: string | null;
+  isPrimary?: boolean;
+}) {
+  const label = formatProviderName(provider);
+  return (
+    <div className="rounded-xl border bg-[#fafbfc] p-4">
+      <p className="text-sm font-semibold text-[#111936]">
+        {isPrimary ? "Primary source" : label}
+        {isPrimary && (
+          <span className="ml-2 font-normal text-[#6d7690]">({label})</span>
+        )}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-3 text-sm">
+        <a
+          href={jobUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`View ${label} listing`}
+          className="inline-flex items-center gap-1.5 font-semibold text-[#3d49df]"
+        >
+          View listing
+          <ExternalLink className="size-4" aria-hidden="true" />
+        </a>
+        {applyUrl && (
+          <a
+            href={applyUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Apply via ${label}`}
+            className="inline-flex items-center gap-1.5 font-semibold text-[#3d49df]"
+          >
+            Apply
+            <ExternalLink className="size-4" aria-hidden="true" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
   const saved = isSavedJob(job);
   const isApplied = saved && job.state === "applied";
   const isSaved = saved && job.state === "saved";
+  const alternates = job.alternate_sources ?? [];
 
   return (
     <div className="mx-auto flex min-h-full max-w-[760px] flex-col px-5 pb-24 pt-7 sm:px-8 sm:pb-8 lg:px-10">
@@ -40,7 +94,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
               href={job.job_url}
               target="_blank"
               rel="noreferrer"
-              aria-label={`Open ${job.title} listing on ${job.provider}`}
+              aria-label={`Open ${job.title} listing on ${formatProviderName(job.provider)}`}
               className="text-[#3d49df]"
             >
               <ExternalLink className="size-4" />
@@ -61,6 +115,10 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
       <div className="mt-4 flex flex-wrap gap-2">
         <Badge className="border-0 bg-[#e9f7ec] px-3 py-1 text-[#236c39]">
           {money(job)} {job.salary_currency ?? ""}
+        </Badge>
+        <Badge variant="outline" className="break-words">
+          {formatProviderName(job.provider)}
+          {alternates.length > 0 && ` · +${alternates.length} sources`}
         </Badge>
         {job.seniority && (
           <Badge variant="secondary" className="px-3 py-1">
@@ -103,30 +161,38 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </Badge>
           {job.seniority && <Badge variant="outline">{job.seniority}</Badge>}
         </div>
-        {job.apply_url && (
-          <a
-            href={job.apply_url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#3d49df]"
-          >
-            Application link
-            <ExternalLink className="size-4" />
-          </a>
-        )}
+        <h3 className="mt-7 font-semibold text-[#111936]">Sources</h3>
+        <div className="mt-3 space-y-3">
+          <SourceLinks
+            provider={job.provider}
+            jobUrl={job.job_url}
+            applyUrl={job.apply_url}
+            isPrimary
+          />
+          {alternates.map((source) => (
+            <SourceLinks
+              key={`${source.provider}:${source.provider_job_id}`}
+              provider={source.provider}
+              jobUrl={source.job_url}
+              applyUrl={source.apply_url}
+            />
+          ))}
+        </div>
       </article>
-      <footer className="mt-10 flex items-center border-t pt-5 text-sm text-[#768098]">
-        <span>
-          From{" "}
+      {hasRemoteOkSource(job) && (
+        <p className="mt-8 text-sm leading-6 text-[#768098]">
+          {REMOTEOK_ATTRIBUTION.text}{" "}
           <a
-            href="https://himalayas.app"
+            href={REMOTEOK_ATTRIBUTION.url}
             className="font-semibold text-[#3d49df]"
             target="_blank"
             rel="noreferrer"
           >
-            {job.provider === "himalayas" ? "Himalayas" : job.provider}
+            {REMOTEOK_ATTRIBUTION.url}
           </a>
-        </span>
+        </p>
+      )}
+      <footer className="mt-6 flex items-center border-t pt-5 text-sm text-[#768098]">
         {saved && (
           <Button
             variant="ghost"

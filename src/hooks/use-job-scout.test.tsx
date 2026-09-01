@@ -17,6 +17,7 @@ const profile: Profile = {
     worldwide: null,
     seniority: [],
     employment_types: [],
+    providers: [],
     minimum_salary: null,
     posted_within_days: null,
     sort: "relevance",
@@ -50,11 +51,20 @@ function searchPage(overrides: Record<string, unknown> = {}) {
     status: "complete",
     progress: 1,
     checked_count: 10,
+    providers: [
+      {
+        provider: "himalayas",
+        status: "complete",
+        progress: 1,
+        checked_count: 10,
+      },
+    ],
     items: [job("stale-1", "Stale role")],
     page: 1,
     page_size: 100,
     total: 1,
     is_complete: true,
+    is_partial: false,
     warnings: [],
     ...overrides,
   };
@@ -159,6 +169,40 @@ describe("useJobScout boot", () => {
     expect(
       routes.some((route) => route.path.endsWith("/default-search/refresh")),
     ).toBe(true);
+  });
+
+  it("reports a partial search when a provider fails but results remain", async () => {
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({
+            status: "complete",
+            is_partial: true,
+            providers: [
+              {
+                provider: "himalayas",
+                status: "complete",
+                progress: 1,
+                checked_count: 10,
+              },
+              {
+                provider: "jobicy",
+                status: "failed",
+                progress: 1,
+                checked_count: 0,
+              },
+            ],
+            warnings: ["jobicy: provider unavailable"],
+            serving_search_id: STALE_SEARCH_ID,
+          })
+        : undefined,
+    );
+
+    const { result } = renderHook(() => useJobScout());
+
+    await waitFor(() => expect(result.current.statusKind).toBe("partial"), {
+      timeout: 3000,
+    });
+    expect(result.current.liveAnnouncement).toContain("partially complete");
   });
 
   it("reports a failed search as failed rather than empty", async () => {

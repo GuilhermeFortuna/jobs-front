@@ -6,6 +6,7 @@ export const EMPTY_FILTERS: SearchFilters = {
   worldwide: null,
   seniority: [],
   employment_types: [],
+  providers: [],
   minimum_salary: null,
   posted_within_days: null,
   sort: "relevance",
@@ -37,6 +38,7 @@ export function hasUrlFilters(params: URLSearchParams): boolean {
     "worldwide",
     "seniority",
     "employment",
+    "providers",
     "salary",
     "posted",
     "sort",
@@ -58,6 +60,7 @@ export function filtersFromSearchParams(
       worldwideParam === "1" ? true : worldwideParam === "0" ? false : null,
     seniority: parseList(params.get("seniority")),
     employment_types: parseList(params.get("employment")),
+    providers: parseList(params.get("providers")),
     minimum_salary: salaryParam ? Number(salaryParam) || null : null,
     posted_within_days: postedParam ? Number(postedParam) || null : null,
     sort: sortParam && isSort(sortParam) ? sortParam : "relevance",
@@ -77,6 +80,8 @@ export function searchParamsFromFilters(
   if (seniority) params.set("seniority", seniority);
   const employment = serializeList(filters.employment_types);
   if (employment) params.set("employment", employment);
+  const providers = serializeList(filters.providers);
+  if (providers) params.set("providers", providers);
   if (filters.minimum_salary)
     params.set("salary", String(filters.minimum_salary));
   if (filters.posted_within_days)
@@ -94,6 +99,7 @@ export function mergeFilters(
     ...override,
     seniority: override.seniority ?? base.seniority,
     employment_types: override.employment_types ?? base.employment_types,
+    providers: override.providers ?? base.providers,
   };
 }
 

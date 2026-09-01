@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { preserveSelection } from "@/lib/job-utils";
+import { jobIdentities, preserveSelection, sourceCount } from "@/lib/job-utils";
 import type { JobResult, SavedJob } from "@/lib/api";
 
-const result = (id: string): JobResult => ({
+const result = (id: string, extras: Partial<JobResult> = {}): JobResult => ({
   provider: "himalayas",
   provider_job_id: id,
   title: `Role ${id}`,
@@ -11,6 +11,7 @@ const result = (id: string): JobResult => ({
   employment_type: "full_time",
   remote_type: "remote",
   job_url: "https://example.com",
+  ...extras,
 });
 
 const saved = (id: string, jobId: string): SavedJob => ({
@@ -42,5 +43,27 @@ describe("preserveSelection", () => {
     const jobs = [result("a"), result("b")];
     const missing = result("gone");
     expect(preserveSelection(jobs, missing)).toEqual(jobs[0]);
+  });
+
+  it("tracks consolidated identities across merges", () => {
+    const selected = result("canonical", {
+      provider: "remoteok",
+      provider_job_id: "rok-1",
+    });
+    const merged = result("canonical", {
+      provider: "himalayas",
+      provider_job_id: "him-1",
+      alternate_sources: [
+        {
+          provider: "remoteok",
+          provider_job_id: "rok-1",
+          job_url: "https://remoteok.com/jobs/1",
+          apply_url: null,
+        },
+      ],
+    });
+    expect(jobIdentities(merged)).toContain("remoteok:rok-1");
+    expect(preserveSelection([merged], selected)).toEqual(merged);
+    expect(sourceCount(merged)).toBe(2);
   });
 });

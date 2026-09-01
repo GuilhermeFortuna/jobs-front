@@ -6,6 +6,7 @@ import {
   api,
   type LibraryState,
   type Profile,
+  type ProviderSearchStatus,
   type SearchFilters,
   type SearchPage,
 } from "@/lib/api";
@@ -18,6 +19,12 @@ import {
   type DisplayJob,
 } from "@/lib/job-utils";
 import {
+  announcementKey,
+  buildNotice,
+  statusKindFromPage,
+  type StatusKind,
+} from "@/lib/search-notice";
+import {
   EMPTY_FILTERS,
   hasUrlFilters,
   resolveInitialFilters,
@@ -26,16 +33,7 @@ import {
 
 export type View = "discover" | "saved" | "applied";
 
-export type StatusKind =
-  | "idle"
-  | "loading"
-  | "partial"
-  | "complete"
-  | "failed"
-  | "offline"
-  | "expired"
-  | "empty"
-  | "validation";
+export type { StatusKind };
 
 const PROFILE_STORAGE_KEY = "job-scout-profile";
 const POLL_INTERVAL_MS = 900;
@@ -60,32 +58,6 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-function buildNotice(page: SearchPage): string {
-  if (page.status === "failed") {
-    return page.warnings[0] ?? "Search stopped early";
-  }
-  if (page.is_complete) {
-    return `Search complete · ${page.total ?? 0} matching roles`;
-  }
-  return "Searching Himalayas";
-}
-
-function statusKindFromPage(
-  page: SearchPage | null,
-  offline: boolean,
-  expired: boolean,
-): StatusKind {
-  if (offline) return "offline";
-  if (expired) return "expired";
-  if (!page) return "idle";
-  if (page.status === "failed") return "failed";
-  if (page.is_complete && page.items.length === 0) return "empty";
-  if (page.is_complete) return "complete";
-  if (page.status === "loading")
-    return page.items.length ? "partial" : "loading";
-  return "loading";
-}
-
 export function useJobScout() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [profile, setProfileState] = useState<Profile | null>(null);
@@ -98,8 +70,12 @@ export function useJobScout() {
   const [checked, setChecked] = useState(0);
   const [total, setTotal] = useState<number | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [providerStatuses, setProviderStatuses] = useState<
+    ProviderSearchStatus[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("Loading profiles…");
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [statusKind, setStatusKind] = useState<StatusKind>("idle");
   const [apiOnline, setApiOnline] = useState(true);
   const [searchExpired, setSearchExpired] = useState(false);
@@ -113,6 +89,7 @@ export function useJobScout() {
   const initGeneration = useRef(0);
   const selectedRef = useRef<DisplayJob | null>(null);
   const previousProfileId = useRef<string | null>(null);
+  const lastAnnouncementKey = useRef("");
 
   useEffect(() => {
     selectedRef.current = selected;
@@ -126,7 +103,13 @@ export function useJobScout() {
     setProgress(page.progress);
     setChecked(page.checked_count);
     setWarnings(page.warnings);
+    setProviderStatuses(page.providers ?? []);
     setNotice(buildNotice(page));
+    const nextKey = announcementKey(page);
+    if (nextKey !== lastAnnouncementKey.current) {
+      lastAnnouncementKey.current = nextKey;
+      setLiveAnnouncement(buildNotice(page));
+    }
     setSearchExpired(false);
     setStatusKind(statusKindFromPage(page, false, false));
 
@@ -199,7 +182,7 @@ export function useJobScout() {
       setSearchExpired(false);
       setApiOnline(true);
       setStatusKind("loading");
-      setNotice("Starting Himalayas search");
+      setNotice("Starting search");
       setProgress(0);
       setChecked(0);
       setTotal(null);
@@ -512,7 +495,7 @@ export function useJobScout() {
         setFiltersState(initialFilters);
         setApiOnline(true);
         setBooted(true);
-        setNotice("Ready to search Himalayas");
+        setNotice("Ready to search");
         previousProfileId.current = current.id;
 
         cancelPolling();
@@ -522,7 +505,7 @@ export function useJobScout() {
         setStatusKind("loading");
 
         if (hasUrlFilters(urlParams)) {
-          setNotice("Starting Himalayas search");
+          setNotice("Starting search");
           const result = await api.startSearch(current.id, initialFilters);
           if (!active || pollGen !== pollGeneration.current) return;
           applySearchPage(result);
@@ -598,8 +581,10 @@ export function useJobScout() {
     checked,
     total,
     warnings,
+    providerStatuses,
     loading,
     notice,
+    liveAnnouncement,
     statusKind,
     apiOnline,
     searchExpired,

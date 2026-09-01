@@ -2,7 +2,16 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { fixtures } from "./fixtures";
 
-async function installApiMock(page: Page) {
+type SearchFixture = typeof fixtures.searchComplete;
+type SearchRefreshFixture = typeof fixtures.searchRefreshComplete;
+
+async function installApiMock(
+  page: Page,
+  options?: {
+    searchComplete?: SearchFixture;
+    searchRefreshComplete?: SearchRefreshFixture;
+  },
+) {
   await page.addInitScript(
     (data) => {
       const originalFetch = window.fetch.bind(window);
@@ -79,8 +88,9 @@ async function installApiMock(page: Page) {
     },
     {
       profileList: [fixtures.profile],
-      searchRefreshComplete: fixtures.searchRefreshComplete,
-      searchComplete: fixtures.searchComplete,
+      searchRefreshComplete:
+        options?.searchRefreshComplete ?? fixtures.searchRefreshComplete,
+      searchComplete: options?.searchComplete ?? fixtures.searchComplete,
       savedJob: fixtures.savedJob,
     },
   );
@@ -100,9 +110,14 @@ test("discover search and save journey", async ({ page }) => {
   ).toBeVisible({
     timeout: 15_000,
   });
-  await expect(page.getByText(/Search complete/)).toBeVisible({
+  await expect(
+    page.locator("span.min-w-0.break-words", { hasText: /Search complete/ }),
+  ).toBeVisible({
     timeout: 15_000,
   });
+  await expect(
+    page.getByRole("article").getByText(/\+1 sources/),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: /Save Staff Engineer/i })
     .first()
@@ -180,4 +195,60 @@ test("profile isolation uses remembered profile id", async ({ page }) => {
   await expect(
     page.getByRole("combobox", { name: "Select profile" }),
   ).toContainText("Gui");
+});
+
+test("degraded search reads as partial and names the failed provider", async ({
+  page,
+}) => {
+  await installApiMock(page, {
+    searchComplete: fixtures.searchPartialComplete as SearchFixture,
+    searchRefreshComplete: {
+      ...fixtures.searchPartialComplete,
+      previous_search_id: null,
+      serving_search_id: fixtures.searchPartialComplete.search_id,
+    } as SearchRefreshFixture,
+  });
+  await page.goto("/");
+  await expect(
+    page.getByRole("status").filter({ hasText: /Search partially complete/ }),
+  ).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(
+    page.getByRole("status").filter({ hasText: /Jobicy unavailable/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Staff Engineer" }).first(),
+  ).toBeVisible();
+});
+
+test("consolidated detail exposes every source and saves once", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Staff Engineer" }).first(),
+  ).toBeVisible({
+    timeout: 15_000,
+  });
+  if (page.viewportSize()?.width && page.viewportSize()!.width < 1280) {
+    await page
+      .getByRole("heading", { level: 3, name: "Staff Engineer" })
+      .click();
+  }
+  const detail =
+    page.viewportSize()?.width && page.viewportSize()!.width < 1280
+      ? page.getByRole("dialog")
+      : page.getByRole("main");
+  await expect(detail.getByText("Primary source")).toBeVisible();
+  await expect(
+    detail.getByRole("link", { name: "View Himalayas listing" }),
+  ).toBeVisible();
+  await expect(
+    detail.getByRole("link", { name: "View Remote OK listing" }),
+  ).toBeVisible();
+  await detail.getByRole("button", { name: /^Save$/ }).click();
+  await expect(page.getByText("Saved to your library")).toBeVisible({
+    timeout: 10_000,
+  });
 });

@@ -13,8 +13,10 @@ import {
   isSavedJob,
   jobKey,
   money,
+  sourceCount,
   type DisplayJob,
 } from "@/lib/job-utils";
+import { formatProviderName } from "@/lib/providers";
 import { cn } from "@/lib/utils";
 
 type JobCardProps = {
@@ -61,7 +63,11 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
             </span>
             <span className="font-medium text-[#303954]">{money(job)}</span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">
+            <Badge variant="outline" className="max-w-full break-words">
+              {formatProviderName(job.provider)}
+              {sourceCount(job) > 1 && ` · +${sourceCount(job) - 1} sources`}
+            </Badge>
             <Badge variant="secondary">
               {job.employment_type.replaceAll("_", " ")}
             </Badge>

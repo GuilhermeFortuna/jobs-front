@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import type { SearchFilters } from "@/lib/api";
 import { DEFAULT_FILTERS } from "@/hooks/use-job-scout";
+import { formatProviderName, KNOWN_PROVIDER_KEYS } from "@/lib/providers";
 
 type FiltersPanelProps = {
   filters: SearchFilters;
@@ -60,7 +61,10 @@ export function FiltersPanel({
   onSaveDefaults,
   disabled,
 }: FiltersPanelProps) {
-  const toggle = (field: "employment_types" | "seniority", value: string) => {
+  const toggle = (
+    field: "employment_types" | "seniority" | "providers",
+    value: string,
+  ) => {
     const values = filters[field];
     setFilters({
       ...filters,
@@ -135,6 +139,25 @@ export function FiltersPanel({
         selected={filters.seniority}
         onToggle={(value) => toggle("seniority", value)}
       />
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-sm font-semibold">Providers</legend>
+        {KNOWN_PROVIDER_KEYS.map((key) => (
+          <label
+            key={key}
+            className="flex cursor-pointer items-center gap-2.5 text-sm text-[#4e5872]"
+          >
+            <Checkbox
+              checked={filters.providers.includes(key)}
+              onCheckedChange={() => toggle("providers", key)}
+              aria-label={`Filter to ${formatProviderName(key)}`}
+            />
+            <span className="break-words">{formatProviderName(key)}</span>
+          </label>
+        ))}
+        <p className="text-xs leading-5 text-[#7a849c]">
+          Leave all unchecked to search every enabled provider.
+        </p>
+      </fieldset>
       <label className="block space-y-2">
         <span className="text-sm font-semibold">Minimum salary (USD)</span>
         <Select

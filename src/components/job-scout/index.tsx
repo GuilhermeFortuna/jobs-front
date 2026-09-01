@@ -174,9 +174,12 @@ export function JobScout() {
             view={scout.view}
             loading={scout.loading}
             notice={scout.notice}
+            liveAnnouncement={scout.liveAnnouncement}
             checked={scout.checked}
             progress={scout.progress}
+            total={scout.total}
             warnings={scout.warnings}
+            providerStatuses={scout.providerStatuses}
             statusKind={scout.statusKind}
             searchExpired={scout.searchExpired}
             onRetry={() => void scout.retryConnection()}

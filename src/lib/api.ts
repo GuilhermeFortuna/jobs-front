@@ -11,9 +11,24 @@ export type SearchFilters = {
   worldwide?: boolean | null;
   seniority: string[];
   employment_types: string[];
+  providers: string[];
   minimum_salary?: number | null;
   posted_within_days?: number | null;
   sort: SearchSort;
+};
+
+export type AlternateSource = {
+  provider: string;
+  provider_job_id: string;
+  job_url: string;
+  apply_url: string | null;
+};
+
+export type ProviderSearchStatus = {
+  provider: string;
+  status: "loading" | "complete" | "failed";
+  progress: number;
+  checked_count: number;
 };
 
 export type Profile = {
@@ -52,6 +67,7 @@ export type JobResult = {
   apply_url?: string | null;
   company_logo_url?: string | null;
   posted_at?: string | null;
+  alternate_sources?: AlternateSource[];
 };
 
 export type SavedJob = JobResult & {
@@ -71,11 +87,13 @@ export type SearchPage = {
   status: "loading" | "complete" | "failed";
   progress: number;
   checked_count: number;
+  providers: ProviderSearchStatus[];
   items: JobResult[];
   page: number;
   page_size: number;
   total: number | null;
   is_complete: boolean;
+  is_partial: boolean;
   warnings: string[];
 };
 
