@@ -14,11 +14,25 @@ This repo is scaffold-only so far: a minimal shell page and API base URL helper 
 
 ## Prerequisites
 
-- Node 22+
-- pnpm 11+
-- Python 3.12+ with `pip` or [uv](https://docs.astral.sh/uv/) (for pre-commit hooks)
+**Containerized dev (recommended):** Docker and Docker Compose only.
 
-## Local setup
+**Local dev (optional):** Node 22+, pnpm 11+, and Python 3.12+ with `pip` or [uv](https://docs.astral.sh/uv/) (for pre-commit hooks).
+
+## Local setup (Docker)
+
+With [jobs-back](../jobs-back) as a sibling directory, from the workspace root (`jobs/`):
+
+```bash
+./dev.sh
+```
+
+This starts frontend, backend, and PostgreSQL with hot reload. See [jobs-back/dev-stack/README.md](../jobs-back/dev-stack/README.md) for ports, env vars, and troubleshooting.
+
+App: [http://localhost:3000](http://localhost:3000)
+
+`NEXT_PUBLIC_API_URL` defaults to `http://localhost:8000` (see `src/lib/api.ts`).
+
+## Local setup (without Docker for the frontend)
 
 ```bash
 cp .env.example .env.local
@@ -26,7 +40,7 @@ pnpm install
 pnpm dev
 ```
 
-App: [http://localhost:3000](http://localhost:3000)
+Requires the backend running separately (see jobs-back README).
 
 ### CI
 
@@ -78,13 +92,8 @@ pnpm build
 
 With [jobs-back](../jobs-back) alongside this repo:
 
-1. In `jobs-back`: `docker compose up -d`
-2. Copy `.env.example` → `.env` (backend) and `.env.example` → `.env.local` (frontend)
-3. Backend: `uv sync --group dev && uv run uvicorn jobs_back.main:app --reload --port 8000`
-4. Frontend: `pnpm install && pnpm dev`
-5. Open `http://localhost:3000` and confirm `http://localhost:8000/health`
-
-`NEXT_PUBLIC_API_URL` defaults to `http://localhost:8000` (see `src/lib/api.ts`).
+1. From workspace root: `./dev.sh`
+2. Open `http://localhost:3000` and confirm `http://localhost:8000/health`
 
 ## What's next
 
