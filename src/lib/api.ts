@@ -149,15 +149,13 @@ export const api = {
 
   search: (
     searchId: string,
+    profileId: string,
     options?: { page?: number; page_size?: number },
   ) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ profile_id: profileId });
     if (options?.page) params.set("page", String(options.page));
     params.set("page_size", String(options?.page_size ?? 100));
-    const query = params.toString();
-    return request<SearchPage>(
-      `/searches/${searchId}${query ? `?${query}` : ""}`,
-    );
+    return request<SearchPage>(`/searches/${searchId}?${params.toString()}`);
   },
 
   refreshDefaultSearch: (profileId: string) =>
