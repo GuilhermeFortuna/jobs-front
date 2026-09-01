@@ -10,6 +10,8 @@ Commands:
   lint    Run ESLint
   format  Run Prettier check
   build   Run Next.js production build
+  test    Run Vitest component tests
+  e2e     Run Playwright journeys
 EOF
 }
 
@@ -28,10 +30,23 @@ run_build() {
   pnpm build
 }
 
+run_test() {
+  echo "==> test"
+  pnpm test
+}
+
+run_e2e() {
+  echo "==> e2e"
+  pnpm e2e:install
+  pnpm e2e
+}
+
 run_all() {
   run_lint
   run_format
   run_build
+  run_test
+  run_e2e
 }
 
 cmd="${1:-all}"
@@ -48,6 +63,12 @@ case "$cmd" in
     ;;
   build)
     run_build
+    ;;
+  test)
+    run_test
+    ;;
+  e2e)
+    run_e2e
     ;;
   *)
     usage

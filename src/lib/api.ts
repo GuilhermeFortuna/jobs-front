@@ -1,5 +1,9 @@
+import { ApiError } from "@/lib/api-error";
+
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export type SearchSort = "relevance" | "newest" | "salary";
 
 export type SearchFilters = {
   query: string;
@@ -9,21 +13,30 @@ export type SearchFilters = {
   employment_types: string[];
   minimum_salary?: number | null;
   posted_within_days?: number | null;
-  sort: "relevance" | "newest" | "salary";
+  sort: SearchSort;
 };
 
 export type Profile = {
   id: string;
   display_name: string;
   preferences: SearchFilters;
+  created_at: string;
+  updated_at: string;
 };
 
-export type Job = {
-  id?: string;
-  profile_id?: string;
+export type ProfileCreate = {
+  display_name: string;
+  preferences?: SearchFilters;
+};
+
+export type ProfilePatch = {
+  display_name?: string;
+  preferences?: SearchFilters;
+};
+
+export type JobResult = {
   provider: string;
   provider_job_id: string;
-  state?: "saved" | "applied";
   title: string;
   company: string;
   description?: string | null;
@@ -41,16 +54,61 @@ export type Job = {
   posted_at?: string | null;
 };
 
+export type SavedJob = JobResult & {
+  id: string;
+  profile_id: string;
+  state: "saved" | "applied";
+  saved_at: string;
+  applied_at: string | null;
+  updated_at: string;
+};
+
+/** @deprecated Use JobResult or SavedJob */
+export type Job = SavedJob;
+
 export type SearchPage = {
   search_id: string;
   status: "loading" | "complete" | "failed";
   progress: number;
   checked_count: number;
-  items: Job[];
+  items: JobResult[];
+  page: number;
+  page_size: number;
   total: number | null;
   is_complete: boolean;
   warnings: string[];
 };
+
+export type SearchRefreshPage = SearchPage & {
+  previous_search_id: string | null;
+  serving_search_id: string;
+};
+
+export type SavedJobCreate = {
+  search_id: string;
+  provider: string;
+  provider_job_id: string;
+  state?: "saved" | "applied";
+};
+
+export type LibraryState = "saved" | "applied";
+
+function parseDetail(payload: unknown, status: number): string {
+  if (payload && typeof payload === "object" && "detail" in payload) {
+    const detail = (payload as { detail: unknown }).detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) =>
+          item && typeof item === "object" && "msg" in item
+            ? String((item as { msg: unknown }).msg)
+            : "Validation error",
+        )
+        .join("; ");
+    }
+  }
+  return `Request failed (${status})`;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -59,42 +117,77 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
-    throw new Error(payload?.detail ?? `Request failed (${response.status})`);
+    throw new ApiError(response.status, parseDetail(payload, response.status));
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }
 
 export const api = {
+  health: () => request<{ status: string }>("/health"),
+
   profiles: () => request<Profile[]>("/profiles"),
-  createProfile: (display_name: string) =>
+
+  getProfile: (profileId: string) => request<Profile>(`/profiles/${profileId}`),
+
+  createProfile: (body: ProfileCreate) =>
     request<Profile>("/profiles", {
       method: "POST",
-      body: JSON.stringify({ display_name }),
+      body: JSON.stringify(body),
     }),
-  updateProfile: (profileId: string, body: Partial<Profile>) =>
+
+  updateProfile: (profileId: string, body: ProfilePatch) =>
     request<Profile>(`/profiles/${profileId}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
-  startSearch: (profile_id: string, filters: SearchFilters) =>
+
+  startSearch: (profile_id: string, filters?: SearchFilters) =>
     request<SearchPage>("/searches", {
       method: "POST",
       body: JSON.stringify({ profile_id, filters }),
     }),
-  search: (searchId: string) =>
-    request<SearchPage>(`/searches/${searchId}?page_size=100`),
-  library: (profileId: string, state: "saved" | "applied") =>
-    request<Job[]>(`/profiles/${profileId}/jobs?state=${state}`),
-  save: (profileId: string, job: Job, state: "saved" | "applied") =>
-    request<Job>(`/profiles/${profileId}/jobs`, {
+
+  search: (
+    searchId: string,
+    options?: { page?: number; page_size?: number },
+  ) => {
+    const params = new URLSearchParams();
+    if (options?.page) params.set("page", String(options.page));
+    params.set("page_size", String(options?.page_size ?? 100));
+    const query = params.toString();
+    return request<SearchPage>(
+      `/searches/${searchId}${query ? `?${query}` : ""}`,
+    );
+  },
+
+  refreshDefaultSearch: (profileId: string) =>
+    request<SearchRefreshPage>(
+      `/profiles/${profileId}/default-search/refresh`,
+      { method: "POST" },
+    ),
+
+  library: (profileId: string, state?: LibraryState) => {
+    const query = state ? `?state=${state}` : "";
+    return request<SavedJob[]>(`/profiles/${profileId}/jobs${query}`);
+  },
+
+  getSavedJob: (profileId: string, jobId: string) =>
+    request<SavedJob>(`/profiles/${profileId}/jobs/${jobId}`),
+
+  save: (profileId: string, body: SavedJobCreate) =>
+    request<SavedJob>(`/profiles/${profileId}/jobs`, {
       method: "POST",
-      body: JSON.stringify({ ...job, id: undefined, state }),
+      body: JSON.stringify(body),
     }),
-  updateState: (profileId: string, jobId: string, state: "saved" | "applied") =>
-    request<Job>(`/profiles/${profileId}/jobs/${jobId}`, {
+
+  updateState: (profileId: string, jobId: string, state: LibraryState) =>
+    request<SavedJob>(`/profiles/${profileId}/jobs/${jobId}`, {
       method: "PATCH",
       body: JSON.stringify({ state }),
     }),
+
   remove: (profileId: string, jobId: string) =>
-    request<void>(`/profiles/${profileId}/jobs/${jobId}`, { method: "DELETE" }),
+    request<void>(`/profiles/${profileId}/jobs/${jobId}`, {
+      method: "DELETE",
+    }),
 };
