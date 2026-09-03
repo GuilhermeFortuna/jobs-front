@@ -9,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { CompanyLogo } from "@/components/job-scout/company-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,9 +94,11 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
       data-testid="job-detail"
     >
       <div className="flex items-start gap-4">
-        <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-foreground text-xl font-bold text-background">
-          {job.company.slice(0, 1)}
-        </div>
+        <CompanyLogo
+          company={job.company}
+          logoUrl={job.company_logo_url}
+          size="md"
+        />
         <div className="min-w-0">
           <h2 className="text-2xl font-semibold tracking-[-0.025em] sm:text-[30px]">
             {job.title}
@@ -190,6 +193,12 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
             >
               Overview
             </TabsTrigger>
+            <TabsTrigger
+              value="sources"
+              className="rounded-none border-b-2 border-transparent px-0 pb-3 data-active:border-primary data-active:shadow-none"
+            >
+              Sources
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="mt-0">
             <div className="whitespace-pre-line text-[15px] leading-7 text-foreground/80">
@@ -206,8 +215,9 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
                 <Badge variant="outline">{job.seniority}</Badge>
               )}
             </div>
-            <h3 className="mt-7 font-semibold text-foreground">Sources</h3>
-            <div className="mt-3 flex flex-col gap-3">
+          </TabsContent>
+          <TabsContent value="sources" className="mt-0">
+            <div className="flex flex-col gap-3">
               <SourceLinks
                 provider={job.provider}
                 jobUrl={job.job_url}

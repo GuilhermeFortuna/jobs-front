@@ -334,6 +334,7 @@ test("consolidated detail exposes every source and saves once", async ({
   const detail = isMobileLayout
     ? page.getByRole("dialog")
     : page.getByRole("main");
+  await detail.getByRole("tab", { name: "Sources" }).click();
   await expect(detail.getByText("Primary source")).toBeVisible();
   await expect(
     detail.getByRole("link", { name: "View Himalayas listing" }),

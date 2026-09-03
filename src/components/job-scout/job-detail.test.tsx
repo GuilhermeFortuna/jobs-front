@@ -1,8 +1,16 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { JobDetail } from "@/components/job-scout/job-detail";
-import type { JobResult } from "@/lib/api";
+import type { JobResult, SavedJob } from "@/lib/api";
+
+afterEach(cleanup);
 
 const job: JobResult = {
   provider: "himalayas",
@@ -24,9 +32,43 @@ const job: JobResult = {
   ],
 };
 
+function openSourcesTab() {
+  fireEvent.click(screen.getByRole("tab", { name: "Sources" }));
+}
+
 describe("JobDetail", () => {
+  it("divides description and sources across real tabs", () => {
+    render(<JobDetail job={job} onSave={vi.fn()} onRemove={vi.fn()} />);
+
+    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: "Sources" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(
+      screen.getByText("Build product infrastructure."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Role details")).toBeInTheDocument();
+    expect(screen.queryByText("Primary source")).not.toBeInTheDocument();
+
+    openSourcesTab();
+
+    expect(screen.getByRole("tab", { name: "Sources" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByText("Primary source")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Build product infrastructure."),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders canonical and alternate source links", () => {
     render(<JobDetail job={job} onSave={vi.fn()} onRemove={vi.fn()} />);
+    openSourcesTab();
     expect(screen.getByText("Primary source")).toBeInTheDocument();
     expect(screen.getByLabelText("View Himalayas listing")).toBeInTheDocument();
     expect(screen.getByLabelText("View Remote OK listing")).toBeInTheDocument();
@@ -70,5 +112,77 @@ describe("JobDetail", () => {
       />,
     );
     expect(screen.queryByLabelText("Matched skills")).not.toBeInTheDocument();
+  });
+
+  it("uses the shared company logo with letter-tile fallback", () => {
+    const { rerender } = render(
+      <JobDetail job={job} onSave={vi.fn()} onRemove={vi.fn()} />,
+    );
+    expect(screen.getByTestId("company-logo-fallback")).toHaveTextContent("L");
+
+    rerender(
+      <JobDetail
+        job={{
+          ...job,
+          company_logo_url: "https://cdn.example.com/linear.png",
+        }}
+        onSave={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("company-logo")).toBeInTheDocument();
+  });
+
+  it("keeps the three-way Save label logic", () => {
+    const { rerender } = render(
+      <JobDetail job={job} onSave={vi.fn()} onRemove={vi.fn()} />,
+    );
+    expect(screen.getByRole("button", { name: /^Save$/ })).toBeInTheDocument();
+
+    const saved: SavedJob = {
+      ...job,
+      id: "saved-1",
+      profile_id: "profile-1",
+      state: "saved",
+      saved_at: "2026-01-01T00:00:00Z",
+      applied_at: null,
+      updated_at: "2026-01-01T00:00:00Z",
+    };
+    rerender(<JobDetail job={saved} onSave={vi.fn()} onRemove={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /^Saved$/ })).toBeInTheDocument();
+
+    rerender(
+      <JobDetail
+        job={{ ...saved, state: "applied", applied_at: "2026-01-02T00:00:00Z" }}
+        onSave={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /^Move to saved$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Applied$/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps saved snapshots viewable without a live listing", () => {
+    const snapshot: SavedJob = {
+      ...job,
+      id: "saved-1",
+      profile_id: "profile-1",
+      state: "saved",
+      saved_at: "2026-01-01T00:00:00Z",
+      applied_at: null,
+      updated_at: "2026-01-01T00:00:00Z",
+    };
+    render(<JobDetail job={snapshot} onSave={vi.fn()} onRemove={vi.fn()} />);
+    expect(screen.getByTestId("job-detail")).toBeInTheDocument();
+    expect(screen.getByText("Staff Engineer")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("job-detail")).getByRole("button", {
+        name: /Remove permanently/,
+      }),
+    ).toBeInTheDocument();
   });
 });

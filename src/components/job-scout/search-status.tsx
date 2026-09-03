@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -8,6 +9,10 @@ import {
   XCircle,
 } from "lucide-react";
 
+import AILoadingState, {
+  type AILoadingSequence,
+} from "@/components/kokonutui/ai-loading";
+import { isTransientNotice } from "@/components/job-scout/transient-notice";
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,7 +25,6 @@ import {
 import type { StatusKind } from "@/hooks/use-job-scout";
 import type { ProviderSearchStatus } from "@/lib/api";
 import { formatProviderName } from "@/lib/providers";
-import { isTransientNotice } from "@/components/job-scout/transient-notice";
 
 type SearchStatusProps = {
   view: "discover" | "saved" | "applied";
@@ -38,6 +42,44 @@ type SearchStatusProps = {
   onRefresh?: () => void;
   onRunSearch?: () => void;
 };
+
+type BannerVariant = "warning" | "destructive" | "info";
+
+type StatusBannerConfig = {
+  key: string;
+  variant: BannerVariant;
+  role?: "status" | "alert";
+  description: ReactNode;
+  action?: ReactNode;
+};
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return reduced;
+}
+
+function useNarrowViewport(): boolean {
+  const [narrow, setNarrow] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const sync = () => setNarrow(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return narrow;
+}
 
 function ProviderStatusIcon({
   status,
@@ -60,6 +102,166 @@ function ProviderStatusIcon({
   return <XCircle className="size-3.5 text-destructive" aria-hidden="true" />;
 }
 
+function StatusBanner({ config }: { config: StatusBannerConfig }) {
+  return (
+    <Alert
+      variant={config.variant}
+      {...(config.role ? { role: config.role } : {})}
+      className="mb-3 rounded-xl"
+      data-testid={`status-banner-${config.key}`}
+    >
+      {config.variant === "warning" && <AlertTriangle aria-hidden="true" />}
+      <AlertDescription>{config.description}</AlertDescription>
+      {config.action ? <AlertAction>{config.action}</AlertAction> : null}
+    </Alert>
+  );
+}
+
+function resolveBanner(props: {
+  view: SearchStatusProps["view"];
+  statusKind: StatusKind;
+  searchExpired: boolean;
+  warnings: string[];
+  notice: string;
+  total: number | null;
+  failedProviders: ProviderSearchStatus[];
+  onRetry?: () => void;
+  onRunSearch?: () => void;
+}): StatusBannerConfig | null {
+  const {
+    view,
+    statusKind,
+    searchExpired,
+    warnings,
+    notice,
+    total,
+    failedProviders,
+    onRetry,
+    onRunSearch,
+  } = props;
+
+  if (statusKind === "partial" && view === "discover") {
+    return {
+      key: "partial",
+      variant: "warning",
+      role: "status",
+      description: (
+        <>
+          Search partially complete
+          {failedProviders.length > 0 && (
+            <>
+              {" "}
+              ·{" "}
+              {failedProviders
+                .map((entry) => formatProviderName(entry.provider))
+                .join(", ")}{" "}
+              unavailable
+            </>
+          )}
+          {total !== null && <> · {total} matching roles</>}
+        </>
+      ),
+    };
+  }
+
+  if (
+    warnings.length > 0 &&
+    view === "discover" &&
+    statusKind !== "partial" &&
+    statusKind !== "failed"
+  ) {
+    return {
+      key: "warning",
+      variant: "warning",
+      role: "status",
+      description: warnings[0],
+    };
+  }
+
+  if (searchExpired && view === "discover") {
+    return {
+      key: "expired",
+      variant: "destructive",
+      description: "Search expired · start a new search to save roles",
+      action: onRunSearch ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 rounded-lg"
+          onClick={onRunSearch}
+        >
+          Run search
+        </Button>
+      ) : undefined,
+    };
+  }
+
+  if (statusKind === "offline") {
+    return {
+      key: "offline",
+      variant: "info",
+      description: notice,
+      action: onRetry ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 rounded-lg"
+          onClick={onRetry}
+        >
+          <RefreshCw className="size-3.5" />
+          Retry
+        </Button>
+      ) : undefined,
+    };
+  }
+
+  if (statusKind === "validation") {
+    return {
+      key: "validation",
+      variant: "destructive",
+      description: notice,
+    };
+  }
+
+  if (statusKind === "failed" && view === "discover") {
+    return {
+      key: "failed",
+      variant: "destructive",
+      description: notice,
+    };
+  }
+
+  return null;
+}
+
+function buildLoadingSequences(
+  notice: string,
+  providerStatuses: ProviderSearchStatus[],
+): AILoadingSequence[] {
+  const lines =
+    providerStatuses.length > 0
+      ? providerStatuses.map((entry) => {
+          const name = formatProviderName(entry.provider);
+          if (entry.status === "failed") return `${name}: unavailable`;
+          if (entry.status === "complete") {
+            return entry.checked_count > 0
+              ? `${name}: ${entry.checked_count.toLocaleString()} checked`
+              : `${name}: complete`;
+          }
+          return entry.checked_count > 0
+            ? `${name}: ${entry.checked_count.toLocaleString()} checked · ${Math.round(entry.progress * 100)}%`
+            : `${name}: searching…`;
+        })
+      : [notice || "Contacting providers…"];
+
+  return [
+    {
+      status: notice || "Searching providers",
+      lines,
+    },
+  ];
+}
+
 export function SearchStatus({
   view,
   loading,
@@ -76,10 +278,32 @@ export function SearchStatus({
   onRefresh,
   onRunSearch,
 }: SearchStatusProps) {
+  const reducedMotion = usePrefersReducedMotion();
+  const narrow = useNarrowViewport();
+  const expressive =
+    loading && view === "discover" && !reducedMotion && !narrow;
+
   const failedProviders = providerStatuses.filter(
     (entry) => entry.status === "failed",
   );
   const stripNotice = isTransientNotice(notice) ? "" : notice;
+
+  const banner = resolveBanner({
+    view,
+    statusKind,
+    searchExpired,
+    warnings,
+    notice,
+    total,
+    failedProviders,
+    onRetry,
+    onRunSearch,
+  });
+
+  const sequences = useMemo(
+    () => buildLoadingSequences(stripNotice || notice, providerStatuses),
+    [stripNotice, notice, providerStatuses],
+  );
 
   return (
     <div className="border-b bg-card px-5 py-5" data-testid="search-status">
@@ -87,86 +311,13 @@ export function SearchStatus({
         {liveAnnouncement}
       </div>
 
-      {statusKind === "partial" && view === "discover" && (
-        <Alert variant="warning" role="status" className="mb-3 rounded-xl">
-          <AlertTriangle aria-hidden="true" />
-          <AlertDescription>
-            Search partially complete
-            {failedProviders.length > 0 && (
-              <>
-                {" "}
-                ·{" "}
-                {failedProviders
-                  .map((entry) => formatProviderName(entry.provider))
-                  .join(", ")}{" "}
-                unavailable
-              </>
-            )}
-            {total !== null && <> · {total} matching roles</>}
-          </AlertDescription>
-        </Alert>
-      )}
+      {banner ? <StatusBanner config={banner} /> : null}
 
-      {warnings.length > 0 &&
-        view === "discover" &&
-        statusKind !== "partial" &&
-        statusKind !== "failed" && (
-          <Alert variant="warning" role="status" className="mb-3 rounded-xl">
-            <AlertTriangle aria-hidden="true" />
-            <AlertDescription>{warnings[0]}</AlertDescription>
-          </Alert>
-        )}
-
-      {searchExpired && view === "discover" && (
-        <Alert variant="destructive" className="mb-3 rounded-xl">
-          <AlertDescription>
-            Search expired · start a new search to save roles
-          </AlertDescription>
-          {onRunSearch && (
-            <AlertAction>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 rounded-lg"
-                onClick={onRunSearch}
-              >
-                Run search
-              </Button>
-            </AlertAction>
-          )}
-        </Alert>
-      )}
-
-      {statusKind === "offline" && (
-        <Alert variant="info" className="mb-3 rounded-xl">
-          <AlertDescription>{notice}</AlertDescription>
-          {onRetry && (
-            <AlertAction>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 rounded-lg"
-                onClick={onRetry}
-              >
-                <RefreshCw className="size-3.5" />
-                Retry
-              </Button>
-            </AlertAction>
-          )}
-        </Alert>
-      )}
-
-      {statusKind === "validation" && (
-        <Alert variant="destructive" className="mb-3 rounded-xl">
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      )}
-
-      {statusKind === "failed" && view === "discover" && (
-        <Alert variant="destructive" className="mb-3 rounded-xl">
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      )}
+      {expressive ? (
+        <div className="mb-3" data-testid="search-in-progress-expressive">
+          <AILoadingState sequences={sequences} />
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {loading ? (
@@ -209,6 +360,7 @@ export function SearchStatus({
         <ul
           className="mt-3 flex flex-col gap-2"
           aria-label="Provider search status"
+          data-testid="provider-status-list"
         >
           {providerStatuses.map((entry) => (
             <li

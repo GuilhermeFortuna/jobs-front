@@ -111,6 +111,7 @@ describe("ProfilePicker skills editor", () => {
     });
 
     expect(screen.getByText("Python")).toBeInTheDocument();
+    expect(screen.getByTestId("skills-tag-input")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("New skill"), {
       target: { value: "TypeScript" },
@@ -127,6 +128,19 @@ describe("ProfilePicker skills editor", () => {
     });
     const payload = onUpdateSkills.mock.calls[0][0] as string[];
     expect(payload.every((label) => typeof label === "string")).toBe(true);
+  });
+
+  it("removes the last skill chip with Backspace when the input is empty", () => {
+    renderPicker({
+      skills: [
+        { label: "Python", token: "python" },
+        { label: "Go", token: "go" },
+      ],
+    });
+    const input = screen.getByLabelText("New skill");
+    fireEvent.keyDown(input, { key: "Backspace" });
+    expect(screen.queryByText("Go")).not.toBeInTheDocument();
+    expect(screen.getByText("Python")).toBeInTheDocument();
   });
 
   it("shows inline validation for duplicates and length", () => {

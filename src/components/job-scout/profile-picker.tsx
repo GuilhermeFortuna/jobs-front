@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Plus, UserRound, X } from "lucide-react";
 
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -61,6 +62,26 @@ type ProfilePickerProps = {
   skillsOpen?: boolean;
   onSkillsOpenChange?: (open: boolean) => void;
 };
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return reduced;
+}
+
+function DialogBeam() {
+  const reducedMotion = usePrefersReducedMotion();
+  if (reducedMotion) return null;
+  return <BorderBeam size={60} duration={8} borderWidth={1.5} />;
+}
 
 export function ProfilePicker({
   profiles,
@@ -265,7 +286,8 @@ export function ProfilePicker({
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-hidden">
+          <DialogBeam />
           <DialogHeader>
             <DialogTitle>Create profile</DialogTitle>
             <DialogDescription>
@@ -296,7 +318,8 @@ export function ProfilePicker({
       </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-hidden">
+          <DialogBeam />
           <DialogHeader>
             <DialogTitle>Rename profile</DialogTitle>
             <DialogDescription>
@@ -326,7 +349,8 @@ export function ProfilePicker({
       </Dialog>
 
       <Dialog open={skillsDialogOpen} onOpenChange={setSkillsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-hidden sm:max-w-md">
+          <DialogBeam />
           <DialogHeader>
             <DialogTitle>Edit skills</DialogTitle>
             <DialogDescription>
@@ -340,32 +364,39 @@ export function ProfilePicker({
                 Add skills you care about so Best match can prioritize roles
                 that mention them.
               </p>
-            ) : (
-              <ul className="flex flex-wrap gap-2" aria-label="Profile skills">
-                {draftLabels.map((label) => (
-                  <li key={label}>
-                    <Badge
-                      variant="secondary"
-                      className="gap-1 rounded-xl px-2.5 py-1"
-                    >
-                      {label}
-                      <button
-                        type="button"
-                        className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-primary focus-ring"
-                        aria-label={`Remove ${label}`}
-                        onClick={() => removeSkill(label)}
-                      >
-                        <X className="size-3.5" aria-hidden="true" />
-                      </button>
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
+            ) : null}
             <FieldGroup>
               <Field data-invalid={error ? true : undefined}>
                 <FieldLabel className="sr-only">New skill</FieldLabel>
-                <div className="flex gap-2">
+                <div
+                  className="flex min-h-11 flex-wrap items-center gap-2 rounded-xl border border-input bg-background px-2.5 py-2 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50"
+                  data-testid="skills-tag-input"
+                >
+                  {draftLabels.length > 0 && (
+                    <ul
+                      className="flex flex-wrap gap-2"
+                      aria-label="Profile skills"
+                    >
+                      {draftLabels.map((label) => (
+                        <li key={label}>
+                          <Badge
+                            variant="secondary"
+                            className="gap-1 rounded-xl px-2.5 py-1"
+                          >
+                            {label}
+                            <button
+                              type="button"
+                              className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-primary focus-ring"
+                              aria-label={`Remove ${label}`}
+                              onClick={() => removeSkill(label)}
+                            >
+                              <X className="size-3.5" aria-hidden="true" />
+                            </button>
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <Input
                     aria-label="New skill"
                     aria-invalid={error ? true : undefined}
@@ -378,15 +409,27 @@ export function ProfilePicker({
                       if (event.key === "Enter") {
                         event.preventDefault();
                         addSkill();
+                        return;
+                      }
+                      if (
+                        event.key === "Backspace" &&
+                        skillInput === "" &&
+                        draftLabels.length > 0
+                      ) {
+                        event.preventDefault();
+                        removeSkill(draftLabels[draftLabels.length - 1]!);
                       }
                     }}
-                    placeholder="e.g. TypeScript"
-                    className="rounded-xl"
+                    placeholder={
+                      draftLabels.length === 0 ? "e.g. TypeScript" : "Add skill"
+                    }
+                    className="h-8 min-w-[8rem] flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-xl"
+                    size="sm"
+                    className="h-8 rounded-lg"
                     onClick={addSkill}
                   >
                     Add
