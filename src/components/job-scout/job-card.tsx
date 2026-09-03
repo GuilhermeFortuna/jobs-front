@@ -90,6 +90,22 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
               {age(job.posted_at)}
             </span>
           </div>
+          {job.matched_skills && job.matched_skills.length > 0 && (
+            <div
+              className="mt-2 flex min-w-0 flex-wrap gap-1.5"
+              aria-label="Matched skills"
+            >
+              {job.matched_skills.map((skill) => (
+                <Badge
+                  key={skill}
+                  variant="outline"
+                  className="border-[#c9cef5] bg-[#f4f5ff] text-[#3d49df]"
+                >
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
         <button
           type="button"

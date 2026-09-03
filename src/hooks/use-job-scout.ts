@@ -444,6 +444,30 @@ export function useJobScout() {
     [profile],
   );
 
+  const updateSkills = useCallback(
+    async (labels: string[]) => {
+      if (!profile) return;
+      try {
+        const updated = await api.updateProfile(profile.id, {
+          skills: labels.map((label) => ({ label })),
+        });
+        setProfiles((current) =>
+          current.map((item) => (item.id === updated.id ? updated : item)),
+        );
+        setProfileState(updated);
+        setNotice("Skills updated · re-ranking search");
+        if (view === "discover") {
+          await runSearch();
+        }
+        return updated;
+      } catch (error) {
+        setNotice(formatApiError(error));
+        throw error;
+      }
+    },
+    [profile, runSearch, view],
+  );
+
   const retryConnection = useCallback(async () => {
     try {
       await api.health();
@@ -621,6 +645,7 @@ export function useJobScout() {
     saveDefaults,
     createProfile,
     renameProfile,
+    updateSkills,
     retryConnection,
   };
 }

@@ -10,6 +10,7 @@ import type { SearchFilters } from "@/lib/api";
 
 const base: SearchFilters = {
   query: "",
+  location: "",
   country: null,
   worldwide: null,
   seniority: [],
@@ -24,6 +25,7 @@ describe("search-params", () => {
   it("round-trips all meaningful filters through URL params", () => {
     const filters: SearchFilters = {
       query: "staff engineer",
+      location: "Lisbon",
       country: "Brazil",
       worldwide: false,
       seniority: ["Senior", "Manager"],
@@ -37,8 +39,21 @@ describe("search-params", () => {
     expect(filtersFromSearchParams(params)).toEqual(filters);
   });
 
+  it("round-trips location independently from country", () => {
+    const filters: SearchFilters = {
+      ...base,
+      location: "Berlin",
+      country: "Germany",
+    };
+    const params = searchParamsFromFilters(filters);
+    expect(params.get("location")).toBe("Berlin");
+    expect(params.get("country")).toBe("Germany");
+    expect(filtersFromSearchParams(params).location).toBe("Berlin");
+    expect(filtersFromSearchParams(params).country).toBe("Germany");
+  });
+
   it("detects when URL overrides profile defaults", () => {
-    const params = new URLSearchParams("q=backend&sort=newest");
+    const params = new URLSearchParams("q=backend&sort=newest&location=Remote");
     expect(hasUrlFilters(params)).toBe(true);
     const resolved = resolveInitialFilters(
       params,
@@ -47,6 +62,7 @@ describe("search-params", () => {
     );
     expect(resolved.query).toBe("backend");
     expect(resolved.sort).toBe("newest");
+    expect(resolved.location).toBe("Remote");
   });
 
   it("uses profile defaults when URL is empty", () => {
@@ -55,9 +71,11 @@ describe("search-params", () => {
       ...base,
       query: "django",
       worldwide: true,
+      location: "Europe",
     };
     const resolved = resolveInitialFilters(params, profilePrefs, base);
     expect(resolved.query).toBe("django");
     expect(resolved.worldwide).toBe(true);
+    expect(resolved.location).toBe("Europe");
   });
 });

@@ -15,6 +15,7 @@ import {
 import type { ProviderDescriptor, SearchFilters } from "@/lib/api";
 import { DEFAULT_FILTERS } from "@/hooks/use-job-scout";
 import { formatProviderName, KNOWN_PROVIDER_KEYS } from "@/lib/providers";
+import { cn } from "@/lib/utils";
 
 type FiltersPanelProps = {
   filters: SearchFilters;
@@ -22,7 +23,7 @@ type FiltersPanelProps = {
   onSearch: () => void;
   onSaveDefaults: () => void;
   disabled?: boolean;
-  /** Enabled providers from the API. Undefined while loading. */
+  /** Known providers from the API. Undefined while loading. */
   providers?: ProviderDescriptor[];
 };
 
@@ -34,6 +35,7 @@ function providerOptions(
   return KNOWN_PROVIDER_KEYS.map((key) => ({
     key,
     display_name: formatProviderName(key),
+    state: "enabled" as const,
   }));
 }
 
@@ -118,7 +120,24 @@ export function FiltersPanel({
         </div>
       </label>
       <label className="block space-y-2">
-        <span className="text-sm font-semibold">Location</span>
+        <span className="text-sm font-semibold">Role location</span>
+        <Input
+          aria-label="Role location"
+          value={filters.location}
+          onChange={(event) =>
+            setFilters({ ...filters, location: event.target.value })
+          }
+          onKeyDown={(event) => event.key === "Enter" && onSearch()}
+          placeholder="e.g. Lisbon, Remote Europe"
+          className="h-10 rounded-xl"
+          disabled={disabled}
+        />
+        <span className="block text-xs leading-5 text-[#7a849c]">
+          Filters where the role is based. Distinct from eligibility below.
+        </span>
+      </label>
+      <label className="block space-y-2">
+        <span className="text-sm font-semibold">Eligible countries</span>
         <Select
           value={filters.worldwide ? "worldwide" : (filters.country ?? "any")}
           onValueChange={(value) =>
@@ -130,16 +149,22 @@ export function FiltersPanel({
           }
           disabled={disabled}
         >
-          <SelectTrigger className="h-10 w-full rounded-xl">
+          <SelectTrigger
+            className="h-10 w-full rounded-xl"
+            aria-label="Eligible countries"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="worldwide">Worldwide</SelectItem>
             <SelectItem value="Brazil">Brazil</SelectItem>
             <SelectItem value="United States">United States</SelectItem>
-            <SelectItem value="any">Any location</SelectItem>
+            <SelectItem value="any">Any eligibility</SelectItem>
           </SelectContent>
         </Select>
+        <span className="block text-xs leading-5 text-[#7a849c]">
+          Where a candidate may apply, not the role&apos;s office location.
+        </span>
       </label>
       <FilterGroup
         title="Employment type"
@@ -155,18 +180,33 @@ export function FiltersPanel({
       />
       <fieldset className="space-y-2">
         <legend className="mb-2 text-sm font-semibold">Providers</legend>
-        {providerOptions(providers).map(({ key, display_name }) => (
-          <label
-            key={key}
-            className="flex cursor-pointer items-center gap-2.5 text-sm text-[#4e5872]"
-          >
-            <Checkbox
-              checked={filters.providers.includes(key)}
-              onCheckedChange={() => toggle("providers", key)}
-            />
-            <span className="break-words">{display_name}</span>
-          </label>
-        ))}
+        {providerOptions(providers).map(({ key, display_name, state }) => {
+          const unavailable = state !== "enabled";
+          return (
+            <label
+              key={key}
+              className={cn(
+                "flex items-center gap-2.5 text-sm text-[#4e5872]",
+                unavailable
+                  ? "cursor-not-allowed opacity-60"
+                  : "cursor-pointer",
+              )}
+            >
+              <Checkbox
+                checked={!unavailable && filters.providers.includes(key)}
+                disabled={unavailable || disabled}
+                onCheckedChange={() => {
+                  if (unavailable) return;
+                  toggle("providers", key);
+                }}
+              />
+              <span className="break-words">
+                {display_name}
+                {unavailable ? " · Unavailable" : ""}
+              </span>
+            </label>
+          );
+        })}
         <p className="text-xs leading-5 text-[#7a849c]">
           Leave all unchecked to search every enabled provider.
         </p>

@@ -2,6 +2,7 @@ import type { SearchFilters, SearchSort } from "@/lib/api";
 
 export const EMPTY_FILTERS: SearchFilters = {
   query: "",
+  location: "",
   country: null,
   worldwide: null,
   seniority: [],
@@ -34,6 +35,7 @@ function serializeList(values: string[]): string | null {
 export function hasUrlFilters(params: URLSearchParams): boolean {
   return [
     "q",
+    "location",
     "country",
     "worldwide",
     "seniority",
@@ -55,6 +57,7 @@ export function filtersFromSearchParams(
 
   return {
     query: params.get("q") ?? "",
+    location: params.get("location") ?? "",
     country: params.get("country"),
     worldwide:
       worldwideParam === "1" ? true : worldwideParam === "0" ? false : null,
@@ -73,6 +76,8 @@ export function searchParamsFromFilters(
   const params = new URLSearchParams();
   const trimmedQuery = filters.query.trim();
   if (trimmedQuery) params.set("q", trimmedQuery);
+  const trimmedLocation = filters.location.trim();
+  if (trimmedLocation) params.set("location", trimmedLocation);
   if (filters.country) params.set("country", filters.country);
   if (filters.worldwide === true) params.set("worldwide", "1");
   if (filters.worldwide === false) params.set("worldwide", "0");

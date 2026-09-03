@@ -126,6 +126,27 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </Badge>
         )}
       </div>
+      {job.matched_skills && job.matched_skills.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-[#111936]">
+            Matched skills
+          </h3>
+          <div
+            className="mt-2 flex flex-wrap gap-2"
+            aria-label="Matched skills"
+          >
+            {job.matched_skills.map((skill) => (
+              <Badge
+                key={skill}
+                variant="outline"
+                className="border-[#c9cef5] bg-[#f4f5ff] px-3 py-1 text-[#3d49df]"
+              >
+                {skill}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mt-6 grid grid-cols-2 gap-3 border-y py-5">
         <Button
           variant="outline"

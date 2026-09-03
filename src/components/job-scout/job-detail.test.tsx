@@ -42,4 +42,29 @@ describe("JobDetail", () => {
       screen.getAllByRole("link", { name: "https://remoteok.com" })[0],
     ).toHaveAttribute("href", "https://remoteok.com");
   });
+
+  it("lists matched skills and never shows a raw relevance score", () => {
+    const { container, rerender } = render(
+      <JobDetail
+        job={{
+          ...job,
+          matched_skills: ["Rust", "Go"],
+          relevance_score: 19.2,
+        }}
+        onSave={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Matched skills").textContent).toBe("RustGo");
+    expect(container.textContent).not.toMatch(/19\.2/);
+
+    rerender(
+      <JobDetail
+        job={{ ...job, matched_skills: [] }}
+        onSave={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Matched skills")).not.toBeInTheDocument();
+  });
 });

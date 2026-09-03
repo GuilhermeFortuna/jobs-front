@@ -7,16 +7,17 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://127.0.0.1:3014",
     trace: "on-first-retry",
   },
   webServer: {
-    command: "pnpm start",
-    url: "http://127.0.0.1:3000",
+    command: "pnpm exec next start -p 3014",
+    url: "http://127.0.0.1:3014",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
       NEXT_PUBLIC_API_URL: "http://localhost:8000",
+      PORT: "3014",
     },
   },
   projects: [

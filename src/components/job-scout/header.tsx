@@ -15,9 +15,12 @@ type HeaderProps = {
   setProfile: (profile: Profile) => void;
   onCreateProfile: (name: string) => Promise<Profile | undefined>;
   onRenameProfile: (name: string) => Promise<Profile | undefined>;
+  onUpdateSkills: (labels: string[]) => Promise<Profile | undefined>;
   profileFallbackNotice?: string | null;
   mobileProfileOpen: boolean;
   setMobileProfileOpen: (open: boolean) => void;
+  skillsOpen?: boolean;
+  onSkillsOpenChange?: (open: boolean) => void;
 };
 
 export function Header({
@@ -28,9 +31,12 @@ export function Header({
   setProfile,
   onCreateProfile,
   onRenameProfile,
+  onUpdateSkills,
   profileFallbackNotice,
   mobileProfileOpen,
   setMobileProfileOpen,
+  skillsOpen,
+  onSkillsOpenChange,
 }: HeaderProps) {
   return (
     <header className="flex h-[68px] shrink-0 items-center border-b bg-white px-4 sm:px-6">
@@ -74,7 +80,10 @@ export function Header({
           onSelect={setProfile}
           onCreate={onCreateProfile}
           onRename={onRenameProfile}
+          onUpdateSkills={onUpdateSkills}
           fallbackNotice={profileFallbackNotice}
+          skillsOpen={skillsOpen}
+          onSkillsOpenChange={onSkillsOpenChange}
         />
       </div>
       <nav
@@ -119,9 +128,12 @@ export function Header({
           onSelect={setProfile}
           onCreate={onCreateProfile}
           onRename={onRenameProfile}
+          onUpdateSkills={onUpdateSkills}
           fallbackNotice={profileFallbackNotice}
           mobileOpen={mobileProfileOpen}
           onMobileOpenChange={setMobileProfileOpen}
+          skillsOpen={skillsOpen}
+          onSkillsOpenChange={onSkillsOpenChange}
         />
       </div>
     </header>
