@@ -22,15 +22,19 @@ export function sourceCount(job: DisplayJob): number {
   return 1 + (job.alternate_sources?.length ?? 0);
 }
 
+export function identitiesOverlap(a: DisplayJob, b: DisplayJob): boolean {
+  const keys = new Set(jobIdentities(a));
+  return jobIdentities(b).some((identity) => keys.has(identity));
+}
+
 export function findJobIndex(jobs: DisplayJob[], target: DisplayJob): number {
   if (isSavedJob(target)) {
-    return jobs.findIndex((job) => isSavedJob(job) && job.id === target.id);
+    const byId = jobs.findIndex(
+      (job) => isSavedJob(job) && job.id === target.id,
+    );
+    if (byId >= 0) return byId;
   }
-  return jobs.findIndex(
-    (job) =>
-      job.provider === target.provider &&
-      job.provider_job_id === target.provider_job_id,
-  );
+  return jobs.findIndex((job) => identitiesOverlap(job, target));
 }
 
 export function preserveSelection(

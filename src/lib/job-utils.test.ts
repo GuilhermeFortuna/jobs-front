@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { jobIdentities, preserveSelection, sourceCount } from "@/lib/job-utils";
+import {
+  findJobIndex,
+  jobIdentities,
+  preserveSelection,
+  sourceCount,
+} from "@/lib/job-utils";
 import type { JobResult, SavedJob } from "@/lib/api";
 
 const result = (id: string, extras: Partial<JobResult> = {}): JobResult => ({
@@ -65,5 +70,39 @@ describe("preserveSelection", () => {
     expect(jobIdentities(merged)).toContain("remoteok:rok-1");
     expect(preserveSelection([merged], selected)).toEqual(merged);
     expect(sourceCount(merged)).toBe(2);
+  });
+});
+
+describe("findJobIndex", () => {
+  it("matches a newly saved job against the raw discovery result", () => {
+    const raw = result("a");
+    const persisted = saved("a", "uuid-1");
+    expect(findJobIndex([raw], persisted)).toBe(0);
+  });
+
+  it("matches a saved job by durable id when both sides are saved", () => {
+    const jobs = [saved("a", "uuid-1"), saved("b", "uuid-2")];
+    expect(findJobIndex(jobs, saved("b", "uuid-2"))).toBe(1);
+  });
+
+  it("matches through alternate source identities", () => {
+    const raw = result("rok-1", {
+      provider: "remoteok",
+      provider_job_id: "rok-1",
+    });
+    const persisted: SavedJob = {
+      ...saved("him-1", "uuid-1"),
+      provider: "himalayas",
+      provider_job_id: "him-1",
+      alternate_sources: [
+        {
+          provider: "remoteok",
+          provider_job_id: "rok-1",
+          job_url: "https://remoteok.com/jobs/1",
+          apply_url: null,
+        },
+      ],
+    };
+    expect(findJobIndex([raw], persisted)).toBe(0);
   });
 });

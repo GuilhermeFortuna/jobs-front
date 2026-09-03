@@ -53,7 +53,10 @@ export function JobScout() {
     <main className="flex h-dvh min-h-[680px] flex-col overflow-hidden bg-[#f7f8fb] text-[#101936]">
       <Header
         view={scout.view}
-        setView={scout.changeView}
+        setView={(next) => {
+          setDetailOpen(false);
+          void scout.changeView(next);
+        }}
         profiles={scout.profiles}
         profile={scout.profile}
         setProfile={scout.setProfile}
@@ -251,7 +254,10 @@ export function JobScout() {
         </section>
       </div>
 
-      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+      <Sheet
+        open={detailOpen && scout.selected !== null}
+        onOpenChange={setDetailOpen}
+      >
         <SheetContent
           side="bottom"
           className="h-[92dvh] overflow-y-auto rounded-t-[22px] p-0 xl:hidden"

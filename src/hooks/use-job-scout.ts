@@ -255,7 +255,9 @@ export function useJobScout() {
   const loadLibrary = useCallback(
     async (state: LibraryState) => {
       if (!profile) return;
+      const profileId = profile.id;
       cancelPolling();
+      const generation = pollGeneration.current;
       setLoading(true);
       setSearchId(null);
       setProgress(0);
@@ -263,7 +265,8 @@ export function useJobScout() {
       setTotal(null);
       setWarnings([]);
       try {
-        const library = await api.library(profile.id, state);
+        const library = await api.library(profileId, state);
+        if (generation !== pollGeneration.current) return;
         setApiOnline(true);
         setJobs(library);
         setSelected(library[0] ?? null);
@@ -272,11 +275,14 @@ export function useJobScout() {
           `${library.length} ${state} role${library.length === 1 ? "" : "s"}`,
         );
       } catch (error) {
+        if (generation !== pollGeneration.current) return;
         setApiOnline(false);
         setStatusKind("offline");
         setNotice(formatApiError(error));
       } finally {
-        setLoading(false);
+        if (generation === pollGeneration.current) {
+          setLoading(false);
+        }
       }
     },
     [cancelPolling, profile],
@@ -344,16 +350,25 @@ export function useJobScout() {
           });
         }
         setApiOnline(true);
-        setSelected(saved);
+        const leavesLibrary =
+          (view === "saved" || view === "applied") && saved.state !== view;
         setJobs((current) => {
           const index = findJobIndex(current, saved);
-          if (index >= 0) {
-            const copy = [...current];
-            copy[index] = saved;
-            return copy;
+          if (index < 0) return current;
+          if (leavesLibrary) {
+            const remaining = current.filter(
+              (_, itemIndex) => itemIndex !== index,
+            );
+            setSelected(preserveSelection(remaining, selectedRef.current));
+            return remaining;
           }
-          return current;
+          const copy = [...current];
+          copy[index] = saved;
+          return copy;
         });
+        if (!leavesLibrary) {
+          setSelected(saved);
+        }
         setNotice(
           state === "applied" ? "Marked as applied" : "Saved to your library",
         );
@@ -367,7 +382,7 @@ export function useJobScout() {
         setNotice(formatApiError(error));
       }
     },
-    [profile, searchId, selected],
+    [profile, searchId, selected, view],
   );
 
   const confirmDelete = useCallback((target: DisplayJob) => {
@@ -444,10 +459,88 @@ export function useJobScout() {
     [profile],
   );
 
+  const initializeFromApi = useCallback(async () => {
+    const generation = ++initGeneration.current;
+    let values = await api.profiles();
+    if (!values.length) {
+      values = [await api.createProfile({ display_name: "Gui" })];
+    }
+    if (generation !== initGeneration.current) return;
+
+    const remembered = localStorage.getItem(PROFILE_STORAGE_KEY);
+    const current = values.find((item) => item.id === remembered) ?? values[0];
+    if (remembered && current.id !== remembered) {
+      setProfileFallbackNotice(
+        "Previously selected profile was removed · using the first available profile",
+      );
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialFilters = resolveInitialFilters(
+      urlParams,
+      current.preferences,
+      FALLBACK_FILTERS,
+    );
+
+    setProfiles(values);
+    setProfileState(current);
+    setFiltersState(initialFilters);
+    setApiOnline(true);
+    setBooted(true);
+    setNotice("Ready to search");
+    previousProfileId.current = current.id;
+
+    cancelPolling();
+    const pollGen = pollGeneration.current;
+    setLoading(true);
+    setSearchExpired(false);
+    setStatusKind("loading");
+
+    if (hasUrlFilters(urlParams)) {
+      setNotice("Starting search");
+      const result = await api.startSearch(current.id, initialFilters);
+      if (
+        generation !== initGeneration.current ||
+        pollGen !== pollGeneration.current
+      ) {
+        return;
+      }
+      applySearchPage(result);
+      if (!result.is_complete) {
+        await pollSearch(result.search_id, pollGen, current.id);
+      } else {
+        setLoading(false);
+      }
+      return;
+    }
+
+    setNotice("Refreshing default search");
+    const result = await api.refreshDefaultSearch(current.id);
+    if (
+      generation !== initGeneration.current ||
+      pollGen !== pollGeneration.current
+    ) {
+      return;
+    }
+    applySearchPage(result, true);
+    if (!result.is_complete) {
+      await pollSearch(result.search_id, pollGen, current.id, {
+        keepStale: true,
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [applySearchPage, cancelPolling, pollSearch]);
+
   const retryConnection = useCallback(async () => {
     try {
       await api.health();
       setApiOnline(true);
+      if (!profile) {
+        setNotice("Connected · loading profiles");
+        await initializeFromApi();
+        return;
+      }
       setNotice("Connected · refreshing search");
       if (view === "discover") {
         await refreshDefaultSearch();
@@ -459,7 +552,7 @@ export function useJobScout() {
       setStatusKind("offline");
       setNotice("Backend is still offline");
     }
-  }, [loadLibrary, refreshDefaultSearch, view]);
+  }, [initializeFromApi, loadLibrary, profile, refreshDefaultSearch, view]);
 
   useEffect(() => {
     let active = true;
@@ -477,76 +570,15 @@ export function useJobScout() {
   }, []);
 
   useEffect(() => {
-    const generation = ++initGeneration.current;
     let active = true;
 
     void (async () => {
       try {
         await api.health();
-        if (!active || generation !== initGeneration.current) return;
-
-        let values = await api.profiles();
-        if (!values.length) {
-          values = [await api.createProfile({ display_name: "Gui" })];
-        }
-        if (!active || generation !== initGeneration.current) return;
-
-        const remembered = localStorage.getItem(PROFILE_STORAGE_KEY);
-        const current =
-          values.find((item) => item.id === remembered) ?? values[0];
-        if (remembered && current.id !== remembered) {
-          setProfileFallbackNotice(
-            "Previously selected profile was removed · using the first available profile",
-          );
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const initialFilters = resolveInitialFilters(
-          urlParams,
-          current.preferences,
-          FALLBACK_FILTERS,
-        );
-
-        setProfiles(values);
-        setProfileState(current);
-        setFiltersState(initialFilters);
-        setApiOnline(true);
-        setBooted(true);
-        setNotice("Ready to search");
-        previousProfileId.current = current.id;
-
-        cancelPolling();
-        const pollGen = pollGeneration.current;
-        setLoading(true);
-        setSearchExpired(false);
-        setStatusKind("loading");
-
-        if (hasUrlFilters(urlParams)) {
-          setNotice("Starting search");
-          const result = await api.startSearch(current.id, initialFilters);
-          if (!active || pollGen !== pollGeneration.current) return;
-          applySearchPage(result);
-          if (!result.is_complete) {
-            await pollSearch(result.search_id, pollGen, current.id);
-          } else {
-            setLoading(false);
-          }
-          return;
-        }
-
-        setNotice("Refreshing default search");
-        const result = await api.refreshDefaultSearch(current.id);
-        if (!active || pollGen !== pollGeneration.current) return;
-        applySearchPage(result, true);
-        if (!result.is_complete) {
-          await pollSearch(result.search_id, pollGen, current.id, {
-            keepStale: true,
-          });
-        } else {
-          setLoading(false);
-        }
+        if (!active) return;
+        await initializeFromApi();
       } catch {
-        if (!active || generation !== initGeneration.current) return;
+        if (!active) return;
         setApiOnline(false);
         setStatusKind("offline");
         if (isDevPreviewEnabled()) {
@@ -564,9 +596,7 @@ export function useJobScout() {
     return () => {
       active = false;
     };
-    // Boot once; profile switches use the dedicated profile effect.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initializeFromApi]);
 
   useEffect(() => {
     if (!profile || !booted) return;

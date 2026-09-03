@@ -1,8 +1,8 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useJobScout } from "@/hooks/use-job-scout";
-import type { JobResult, Profile } from "@/lib/api";
+import type { JobResult, Profile, SavedJob } from "@/lib/api";
 
 const PROFILE_ID = "11111111-1111-1111-1111-111111111111";
 const STALE_SEARCH_ID = "22222222-2222-2222-2222-222222222222";
@@ -45,6 +45,22 @@ function job(id: string, title: string): JobResult {
   };
 }
 
+function savedJob(
+  id: string,
+  title: string,
+  state: SavedJob["state"] = "saved",
+): SavedJob {
+  return {
+    ...job(id, title),
+    id: `saved-${id}`,
+    profile_id: PROFILE_ID,
+    state,
+    saved_at: "2026-01-11T00:00:00Z",
+    applied_at: state === "applied" ? "2026-01-12T00:00:00Z" : null,
+    updated_at: "2026-01-12T00:00:00Z",
+  };
+}
+
 function searchPage(overrides: Record<string, unknown> = {}) {
   return {
     search_id: STALE_SEARCH_ID,
@@ -71,9 +87,11 @@ function searchPage(overrides: Record<string, unknown> = {}) {
 }
 
 type Route = { method: string; path: string; url: URL; body: unknown };
+type HandlerResult = unknown | Response | undefined;
 
 let routes: Route[] = [];
-let handlers: Array<(route: Route) => unknown | undefined> = [];
+let handlers: Array<(route: Route) => HandlerResult | Promise<HandlerResult>> =
+  [];
 
 function install() {
   routes = [];
@@ -89,8 +107,9 @@ function install() {
       };
       routes.push(route);
       for (const handler of handlers) {
-        const result = handler(route);
+        const result = await handler(route);
         if (result !== undefined) {
+          if (result instanceof Response) return result;
           return new Response(JSON.stringify(result), {
             status: 200,
             headers: { "Content-Type": "application/json" },
@@ -316,5 +335,185 @@ describe("useJobScout default-search refresh", () => {
     );
     const read = routes.find((route) => route.path.startsWith("/searches/"));
     expect(read?.url.searchParams.get("profile_id")).toBe(PROFILE_ID);
+  });
+});
+
+describe("useJobScout retry and library", () => {
+  it("reloads profiles when retrying after a failed boot", async () => {
+    let healthOk = false;
+    handlers[0] = (route) => {
+      if (route.path !== "/health") return undefined;
+      if (!healthOk) {
+        return new Response(JSON.stringify({ detail: "down" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return { status: "ok" };
+    };
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
+        : undefined,
+    );
+
+    const { result } = renderHook(() => useJobScout());
+    await waitFor(() => expect(result.current.apiOnline).toBe(false), {
+      timeout: 3000,
+    });
+    expect(result.current.profile).toBeNull();
+
+    healthOk = true;
+    await act(async () => {
+      await result.current.retryConnection();
+    });
+
+    await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
+      timeout: 3000,
+    });
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+    expect(result.current.apiOnline).toBe(true);
+  });
+
+  it("replaces a discover result with the saved snapshot by identity", async () => {
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
+        : undefined,
+    );
+    handlers.push((route) =>
+      route.path === `/profiles/${PROFILE_ID}/jobs` && route.method === "POST"
+        ? savedJob("stale-1", "Stale role")
+        : undefined,
+    );
+
+    const { result } = renderHook(() => useJobScout());
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+
+    await act(async () => {
+      await result.current.saveJob("saved");
+    });
+
+    await waitFor(
+      () =>
+        expect(result.current.jobs[0]).toMatchObject({
+          id: "saved-stale-1",
+          provider_job_id: "stale-1",
+          state: "saved",
+        }),
+      { timeout: 3000 },
+    );
+    expect(result.current.jobs).toHaveLength(1);
+    expect(result.current.selected).toMatchObject({ id: "saved-stale-1" });
+  });
+
+  it("removes a job from the saved view after it is marked applied", async () => {
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
+        : undefined,
+    );
+    handlers.push((route) => {
+      if (
+        !route.path.startsWith(`/profiles/${PROFILE_ID}/jobs`) ||
+        route.method !== "GET"
+      ) {
+        return undefined;
+      }
+      return [savedJob("lib-1", "Library role")];
+    });
+    handlers.push((route) =>
+      route.path.endsWith("/jobs/saved-lib-1") && route.method === "PATCH"
+        ? savedJob("lib-1", "Library role", "applied")
+        : undefined,
+    );
+
+    const { result } = renderHook(() => useJobScout());
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+
+    await act(async () => {
+      await result.current.changeView("saved");
+    });
+    await waitFor(() => expect(result.current.view).toBe("saved"), {
+      timeout: 3000,
+    });
+    await waitFor(
+      () => expect(result.current.jobs[0]).toMatchObject({ id: "saved-lib-1" }),
+      { timeout: 3000 },
+    );
+
+    await act(async () => {
+      await result.current.saveJob("applied");
+    });
+
+    await waitFor(() => expect(result.current.jobs).toHaveLength(0), {
+      timeout: 3000,
+    });
+    expect(result.current.selected).toBeNull();
+  });
+
+  it("ignores a stale library response after switching views", async () => {
+    let releaseSaved!: () => void;
+    const savedGate = new Promise<void>((resolve) => {
+      releaseSaved = resolve;
+    });
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
+        : undefined,
+    );
+    handlers.push(async (route) => {
+      if (
+        !route.path.startsWith(`/profiles/${PROFILE_ID}/jobs`) ||
+        route.method !== "GET"
+      ) {
+        return undefined;
+      }
+      const state = route.url.searchParams.get("state");
+      if (state === "saved") {
+        await savedGate;
+        return [savedJob("slow-saved", "Slow saved")];
+      }
+      if (state === "applied") {
+        return [savedJob("fast-applied", "Fast applied", "applied")];
+      }
+      return undefined;
+    });
+
+    const { result } = renderHook(() => useJobScout());
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+
+    let savedView: Promise<void>;
+    await act(async () => {
+      savedView = result.current.changeView("saved");
+    });
+    await act(async () => {
+      await result.current.changeView("applied");
+    });
+    await waitFor(
+      () =>
+        expect(result.current.jobs[0]).toMatchObject({
+          id: "saved-fast-applied",
+        }),
+      { timeout: 3000 },
+    );
+
+    releaseSaved();
+    await act(async () => {
+      await savedView;
+    });
+
+    expect(result.current.view).toBe("applied");
+    expect(result.current.jobs[0]).toMatchObject({
+      id: "saved-fast-applied",
+    });
   });
 });

@@ -160,6 +160,33 @@ test("library state move and delete confirmation", async ({
   }
   await page.getByRole("button", { name: "Mark as applied" }).click();
   await expect(page.getByText("Marked as applied")).toBeVisible();
+  if (testInfo.project.name === "mobile") {
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Job details" })).toHaveCount(
+      0,
+    );
+    await page
+      .getByRole("navigation", { name: "Mobile navigation" })
+      .getByRole("button", { name: "applied" })
+      .click();
+  } else {
+    await page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("button", { name: "applied" })
+      .click();
+  }
+  await expect(
+    page.getByRole("heading", { name: "Applications", exact: true }),
+  ).toBeVisible();
+  if (testInfo.project.name === "mobile") {
+    await page
+      .getByRole("heading", { level: 3, name: "Staff Engineer" })
+      .click();
+  } else {
+    await expect(
+      page.getByRole("heading", { level: 3, name: "Staff Engineer" }),
+    ).toBeVisible();
+  }
   await page
     .getByRole("button", { name: "Remove permanently" })
     .first()
