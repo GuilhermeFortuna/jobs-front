@@ -5,7 +5,6 @@ import { Pencil, Plus, UserRound, X } from "lucide-react";
 
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -17,11 +16,26 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -204,6 +218,7 @@ export function ProfilePicker({
               size="icon"
               className="h-10 w-10 rounded-xl"
               aria-label="Profile actions"
+              title="Profile actions"
             />
           }
         >
@@ -249,73 +264,77 @@ export function ProfilePicker({
         </p>
       )}
 
-      <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create profile</AlertDialogTitle>
-            <AlertDialogDescription>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create profile</DialogTitle>
+            <DialogDescription>
               Profiles are local identities for separate saved libraries.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input
-            aria-label="Profile name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Profile name"
-            className="rounded-xl"
-          />
-          {error && (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleCreate()}>
-              Create
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup>
+            <Field data-invalid={error ? true : undefined}>
+              <FieldLabel className="sr-only">Profile name</FieldLabel>
+              <Input
+                aria-label="Profile name"
+                aria-invalid={error ? true : undefined}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Profile name"
+                className="rounded-xl"
+              />
+              {error && <FieldError>{error}</FieldError>}
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button onClick={() => void handleCreate()}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <AlertDialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Rename profile</AlertDialogTitle>
-            <AlertDialogDescription>
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename profile</DialogTitle>
+            <DialogDescription>
               Update the display name for this profile.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input
-            aria-label="Profile name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="rounded-xl"
-          />
-          {error && (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleRename()}>
-              Save name
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup>
+            <Field data-invalid={error ? true : undefined}>
+              <FieldLabel className="sr-only">Profile name</FieldLabel>
+              <Input
+                aria-label="Profile name"
+                aria-invalid={error ? true : undefined}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="rounded-xl"
+              />
+              {error && <FieldError>{error}</FieldError>}
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button onClick={() => void handleRename()}>Save name</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <AlertDialog open={skillsDialogOpen} onOpenChange={setSkillsDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Edit skills</AlertDialogTitle>
-            <AlertDialogDescription>
+      <Dialog open={skillsDialogOpen} onOpenChange={setSkillsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit skills</DialogTitle>
+            <DialogDescription>
               Skills belong to this profile and re-rank the next search under
               Best match. They never filter results out.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
             {draftLabels.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Add skills you care about so Best match can prioritize roles
@@ -343,51 +362,55 @@ export function ProfilePicker({
                 ))}
               </ul>
             )}
-            <div className="flex gap-2">
-              <Input
-                aria-label="New skill"
-                value={skillInput}
-                onChange={(event) => {
-                  setSkillInput(event.target.value);
-                  setError(null);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    addSkill();
-                  }
-                }}
-                placeholder="e.g. TypeScript"
-                className="rounded-xl"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl"
-                onClick={addSkill}
-              >
-                Add
-              </Button>
-            </div>
-            {error && (
-              <p className="text-sm text-destructive" role="alert">
-                {error}
-              </p>
-            )}
+            <FieldGroup>
+              <Field data-invalid={error ? true : undefined}>
+                <FieldLabel className="sr-only">New skill</FieldLabel>
+                <div className="flex gap-2">
+                  <Input
+                    aria-label="New skill"
+                    aria-invalid={error ? true : undefined}
+                    value={skillInput}
+                    onChange={(event) => {
+                      setSkillInput(event.target.value);
+                      setError(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addSkill();
+                      }
+                    }}
+                    placeholder="e.g. TypeScript"
+                    className="rounded-xl"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={addSkill}
+                  >
+                    Add
+                  </Button>
+                </div>
+                {error && <FieldError>{error}</FieldError>}
+              </Field>
+            </FieldGroup>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={savingSkills}>
+          <DialogFooter>
+            <DialogClose
+              render={<Button variant="outline" disabled={savingSkills} />}
+            >
               Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
+            </DialogClose>
+            <Button
               disabled={savingSkills || !profile}
               onClick={() => void handleSaveSkills()}
             >
               Save skills
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {mobileOpen !== undefined && onMobileOpenChange && (
         <AlertDialog open={mobileOpen} onOpenChange={onMobileOpenChange}>
@@ -398,7 +421,7 @@ export function ProfilePicker({
                 Switch, create, rename, or edit skills for your local profile.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="space-y-3">{picker}</div>
+            <div className="flex flex-col gap-3">{picker}</div>
             {fallbackNotice && (
               <p className="text-sm text-muted-foreground">{fallbackNotice}</p>
             )}

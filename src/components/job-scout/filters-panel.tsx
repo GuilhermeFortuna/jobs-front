@@ -4,7 +4,17 @@ import { BookmarkCheck, Search, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
   Select,
   SelectContent,
@@ -51,7 +61,7 @@ function FilterGroup({
   onToggle: (value: string) => void;
 }) {
   return (
-    <fieldset className="space-y-2">
+    <fieldset className="flex flex-col gap-2">
       <legend className="mb-2 text-sm font-semibold">{title}</legend>
       {values.map((value) => (
         <label
@@ -91,7 +101,7 @@ export function FiltersPanel({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold">Filters</h2>
         <Button
@@ -103,69 +113,74 @@ export function FiltersPanel({
           Reset
         </Button>
       </div>
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold">Keywords</span>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            aria-label="Search keywords"
-            value={filters.query}
-            onChange={(event) =>
-              setFilters({ ...filters, query: event.target.value })
+      <FieldGroup>
+        <Field>
+          <FieldLabel>Keywords</FieldLabel>
+          <InputGroup className="h-10 rounded-xl">
+            <InputGroupAddon>
+              <Search aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              aria-label="Search keywords"
+              value={filters.query}
+              onChange={(event) =>
+                setFilters({ ...filters, query: event.target.value })
+              }
+              onKeyDown={(event) => event.key === "Enter" && onSearch()}
+              disabled={disabled}
+            />
+          </InputGroup>
+        </Field>
+        <Field>
+          <FieldLabel>Role location</FieldLabel>
+          <InputGroup className="h-10 rounded-xl">
+            <InputGroupInput
+              aria-label="Role location"
+              value={filters.location}
+              onChange={(event) =>
+                setFilters({ ...filters, location: event.target.value })
+              }
+              onKeyDown={(event) => event.key === "Enter" && onSearch()}
+              placeholder="e.g. Lisbon, Remote Europe"
+              disabled={disabled}
+            />
+          </InputGroup>
+          <FieldDescription className="text-xs leading-5">
+            Filters where the role is based. Distinct from eligibility below.
+          </FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel>Eligible countries</FieldLabel>
+          <Select
+            value={filters.worldwide ? "worldwide" : (filters.country ?? "any")}
+            onValueChange={(value) =>
+              setFilters({
+                ...filters,
+                worldwide: value === "worldwide" ? true : null,
+                country:
+                  value === "worldwide" || value === "any" ? null : value,
+              })
             }
-            onKeyDown={(event) => event.key === "Enter" && onSearch()}
-            className="h-10 rounded-xl pl-9"
             disabled={disabled}
-          />
-        </div>
-      </label>
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold">Role location</span>
-        <Input
-          aria-label="Role location"
-          value={filters.location}
-          onChange={(event) =>
-            setFilters({ ...filters, location: event.target.value })
-          }
-          onKeyDown={(event) => event.key === "Enter" && onSearch()}
-          placeholder="e.g. Lisbon, Remote Europe"
-          className="h-10 rounded-xl"
-          disabled={disabled}
-        />
-        <span className="block text-xs leading-5 text-muted-foreground">
-          Filters where the role is based. Distinct from eligibility below.
-        </span>
-      </label>
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold">Eligible countries</span>
-        <Select
-          value={filters.worldwide ? "worldwide" : (filters.country ?? "any")}
-          onValueChange={(value) =>
-            setFilters({
-              ...filters,
-              worldwide: value === "worldwide" ? true : null,
-              country: value === "worldwide" || value === "any" ? null : value,
-            })
-          }
-          disabled={disabled}
-        >
-          <SelectTrigger
-            className="h-10 w-full rounded-xl"
-            aria-label="Eligible countries"
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="worldwide">Worldwide</SelectItem>
-            <SelectItem value="Brazil">Brazil</SelectItem>
-            <SelectItem value="United States">United States</SelectItem>
-            <SelectItem value="any">Any eligibility</SelectItem>
-          </SelectContent>
-        </Select>
-        <span className="block text-xs leading-5 text-muted-foreground">
-          Where a candidate may apply, not the role&apos;s office location.
-        </span>
-      </label>
+            <SelectTrigger
+              className="h-10 w-full rounded-xl"
+              aria-label="Eligible countries"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="worldwide">Worldwide</SelectItem>
+              <SelectItem value="Brazil">Brazil</SelectItem>
+              <SelectItem value="United States">United States</SelectItem>
+              <SelectItem value="any">Any eligibility</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldDescription className="text-xs leading-5">
+            Where a candidate may apply, not the role&apos;s office location.
+          </FieldDescription>
+        </Field>
+      </FieldGroup>
       <FilterGroup
         title="Employment type"
         values={["Full Time", "Contractor", "Part Time", "Intern"]}
@@ -178,7 +193,7 @@ export function FiltersPanel({
         selected={filters.seniority}
         onToggle={(value) => toggle("seniority", value)}
       />
-      <fieldset className="space-y-2">
+      <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-semibold">Providers</legend>
         {providerOptions(providers).map(({ key, display_name, state }) => {
           const unavailable = state !== "enabled";
@@ -211,49 +226,51 @@ export function FiltersPanel({
           Leave all unchecked to search every enabled provider.
         </p>
       </fieldset>
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold">Minimum salary (USD)</span>
-        <Select
-          value={String(filters.minimum_salary ?? 0)}
-          onValueChange={(value) =>
-            setFilters({ ...filters, minimum_salary: Number(value) || null })
-          }
-          disabled={disabled}
-        >
-          <SelectTrigger className="h-10 w-full rounded-xl">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">Any salary</SelectItem>
-            <SelectItem value="100000">$100,000</SelectItem>
-            <SelectItem value="150000">$150,000</SelectItem>
-            <SelectItem value="200000">$200,000</SelectItem>
-          </SelectContent>
-        </Select>
-      </label>
-      <label className="block space-y-2">
-        <span className="text-sm font-semibold">Posted within</span>
-        <Select
-          value={String(filters.posted_within_days ?? 0)}
-          onValueChange={(value) =>
-            setFilters({
-              ...filters,
-              posted_within_days: Number(value) || null,
-            })
-          }
-          disabled={disabled}
-        >
-          <SelectTrigger className="h-10 w-full rounded-xl">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">Any time</SelectItem>
-            <SelectItem value="1">Last 24 hours</SelectItem>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-          </SelectContent>
-        </Select>
-      </label>
+      <FieldGroup>
+        <Field>
+          <FieldLabel>Minimum salary (USD)</FieldLabel>
+          <Select
+            value={String(filters.minimum_salary ?? 0)}
+            onValueChange={(value) =>
+              setFilters({ ...filters, minimum_salary: Number(value) || null })
+            }
+            disabled={disabled}
+          >
+            <SelectTrigger className="h-10 w-full rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Any salary</SelectItem>
+              <SelectItem value="100000">$100,000</SelectItem>
+              <SelectItem value="150000">$150,000</SelectItem>
+              <SelectItem value="200000">$200,000</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel>Posted within</FieldLabel>
+          <Select
+            value={String(filters.posted_within_days ?? 0)}
+            onValueChange={(value) =>
+              setFilters({
+                ...filters,
+                posted_within_days: Number(value) || null,
+              })
+            }
+            disabled={disabled}
+          >
+            <SelectTrigger className="h-10 w-full rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Any time</SelectItem>
+              <SelectItem value="1">Last 24 hours</SelectItem>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+      </FieldGroup>
       <Button
         className="h-10 w-full rounded-xl bg-primary hover:bg-primary-hover"
         onClick={onSearch}

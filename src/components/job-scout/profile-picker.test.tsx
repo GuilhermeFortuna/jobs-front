@@ -110,7 +110,7 @@ describe("ProfilePicker skills editor", () => {
       skills: [{ label: "Python", token: "python" }],
     });
 
-    const dialog = screen.getByRole("alertdialog");
+    const dialog = screen.getByRole("dialog");
 
     fireEvent.change(screen.getByLabelText("New skill"), {
       target: { value: "python" },
@@ -133,7 +133,7 @@ describe("ProfilePicker skills editor", () => {
     renderPicker({
       skills: [{ label: "Python", token: "python" }],
     });
-    const dialog = screen.getByRole("alertdialog");
+    const dialog = screen.getByRole("dialog");
     const toast = document.createElement("div");
     toast.setAttribute("role", "alert");
     toast.textContent = "Saved to your library";
@@ -169,7 +169,7 @@ describe("ProfilePicker skills editor", () => {
 
     await waitFor(() => {
       expect(
-        within(screen.getByRole("alertdialog")).getByRole("alert"),
+        within(screen.getByRole("dialog")).getByRole("alert"),
       ).toHaveTextContent(/Duplicate skill token/i);
     });
   });

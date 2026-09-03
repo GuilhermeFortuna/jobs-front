@@ -3,6 +3,7 @@ import { Fraunces, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const display = Fraunces({
@@ -36,7 +37,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           disableTransitionOnChange
           storageKey="job-scout-theme"
         >
-          <TooltipProvider>{children}</TooltipProvider>
+          <Toaster>
+            <TooltipProvider>{children}</TooltipProvider>
+          </Toaster>
         </ThemeProvider>
       </body>
     </html>

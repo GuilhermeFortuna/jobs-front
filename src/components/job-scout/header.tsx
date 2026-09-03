@@ -4,6 +4,7 @@ import { Bookmark, BriefcaseBusiness, Search, UserRound } from "lucide-react";
 
 import { ProfilePicker } from "@/components/job-scout/profile-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Separator } from "@/components/ui/separator";
 import type { Profile } from "@/lib/api";
 import type { View } from "@/hooks/use-job-scout";
 import { cn } from "@/lib/utils";
@@ -91,9 +92,10 @@ export function Header({
         />
       </div>
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 flex h-[66px] items-center justify-around border-t bg-card/95 px-5 backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex h-[66px] items-center justify-around bg-card/95 px-5 backdrop-blur sm:hidden relative"
         aria-label="Mobile navigation"
       >
+        <Separator className="absolute inset-x-0 top-0" />
         {(["discover", "saved", "applied"] as const).map((item) => (
           <button
             key={item}

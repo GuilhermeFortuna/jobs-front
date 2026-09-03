@@ -1,81 +1,86 @@
 import { render, screen, within } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { SearchStatus } from "@/components/job-scout/search-status";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+function renderStatus(props: ComponentProps<typeof SearchStatus>) {
+  return render(
+    <TooltipProvider>
+      <SearchStatus {...props} />
+    </TooltipProvider>,
+  );
+}
 
 describe("SearchStatus", () => {
   it("names failed providers in the partial banner", () => {
-    render(
-      <SearchStatus
-        view="discover"
-        loading={false}
-        notice="Search partially complete · 1 roles · Jobicy unavailable"
-        liveAnnouncement="Search partially complete · 1 roles · Jobicy unavailable"
-        checked={100}
-        progress={1}
-        total={1}
-        warnings={["jobicy: provider unavailable"]}
-        providerStatuses={[
-          {
-            provider: "himalayas",
-            status: "complete",
-            progress: 1,
-            checked_count: 80,
-          },
-          {
-            provider: "jobicy",
-            status: "failed",
-            progress: 1,
-            checked_count: 0,
-          },
-        ]}
-        statusKind="partial"
-        searchExpired={false}
-        onRefresh={vi.fn()}
-      />,
-    );
+    renderStatus({
+      view: "discover",
+      loading: false,
+      notice: "Search partially complete · 1 roles · Jobicy unavailable",
+      liveAnnouncement:
+        "Search partially complete · 1 roles · Jobicy unavailable",
+      checked: 100,
+      progress: 1,
+      total: 1,
+      warnings: ["jobicy: provider unavailable"],
+      providerStatuses: [
+        {
+          provider: "himalayas",
+          status: "complete",
+          progress: 1,
+          checked_count: 80,
+        },
+        {
+          provider: "jobicy",
+          status: "failed",
+          progress: 1,
+          checked_count: 0,
+        },
+      ],
+      statusKind: "partial",
+      searchExpired: false,
+      onRefresh: vi.fn(),
+    });
     expect(screen.getAllByText(/Jobicy unavailable/).length).toBeGreaterThan(0);
     expect(screen.getByText("Himalayas")).toBeInTheDocument();
     expect(screen.getByText("Jobicy")).toBeInTheDocument();
   });
 
   it("shows a total-failure alert separately from partial completion", () => {
-    const { container } = render(
-      <SearchStatus
-        view="discover"
-        loading={false}
-        notice="All providers failed"
-        liveAnnouncement="All providers failed"
-        checked={0}
-        progress={1}
-        total={0}
-        warnings={["All providers failed"]}
-        providerStatuses={[]}
-        statusKind="failed"
-        searchExpired={false}
-      />,
-    );
+    const { container } = renderStatus({
+      view: "discover",
+      loading: false,
+      notice: "All providers failed",
+      liveAnnouncement: "All providers failed",
+      checked: 0,
+      progress: 1,
+      total: 0,
+      warnings: ["All providers failed"],
+      providerStatuses: [],
+      statusKind: "failed",
+      searchExpired: false,
+    });
     expect(within(container).getByRole("alert")).toHaveTextContent(
       "All providers failed",
     );
   });
 
   it("scopes the failure alert query even when another alert (e.g. a toast) is on the page", () => {
-    const { container } = render(
-      <SearchStatus
-        view="discover"
-        loading={false}
-        notice="All providers failed"
-        liveAnnouncement="All providers failed"
-        checked={0}
-        progress={1}
-        total={0}
-        warnings={["All providers failed"]}
-        providerStatuses={[]}
-        statusKind="failed"
-        searchExpired={false}
-      />,
-    );
+    const { container } = renderStatus({
+      view: "discover",
+      loading: false,
+      notice: "All providers failed",
+      liveAnnouncement: "All providers failed",
+      checked: 0,
+      progress: 1,
+      total: 0,
+      warnings: ["All providers failed"],
+      providerStatuses: [],
+      statusKind: "failed",
+      searchExpired: false,
+    });
     const toast = document.createElement("div");
     toast.setAttribute("role", "alert");
     toast.textContent = "Saved to your library";

@@ -3,17 +3,24 @@
 import {
   AlertTriangle,
   CheckCircle2,
-  LoaderCircle,
   RefreshCw,
   Sparkles,
   XCircle,
 } from "lucide-react";
 
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { StatusKind } from "@/hooks/use-job-scout";
 import type { ProviderSearchStatus } from "@/lib/api";
 import { formatProviderName } from "@/lib/providers";
-import { Button } from "@/components/ui/button";
+import { isTransientNotice } from "@/components/job-scout/transient-notice";
 
 type SearchStatusProps = {
   view: "discover" | "saved" | "applied";
@@ -39,8 +46,8 @@ function ProviderStatusIcon({
 }) {
   if (status === "loading") {
     return (
-      <LoaderCircle
-        className="size-3.5 animate-spin text-primary motion-reduce:animate-none"
+      <Spinner
+        className="size-3.5 text-primary motion-reduce:animate-none"
         aria-hidden="true"
       />
     );
@@ -72,6 +79,7 @@ export function SearchStatus({
   const failedProviders = providerStatuses.filter(
     (entry) => entry.status === "failed",
   );
+  const stripNotice = isTransientNotice(notice) ? "" : notice;
 
   return (
     <div className="border-b bg-card px-5 py-5" data-testid="search-status">
@@ -80,15 +88,9 @@ export function SearchStatus({
       </div>
 
       {statusKind === "partial" && view === "discover" && (
-        <div
-          className="mb-3 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-foreground"
-          role="status"
-        >
-          <AlertTriangle
-            className="mt-0.5 size-4 shrink-0"
-            aria-hidden="true"
-          />
-          <span>
+        <Alert variant="warning" role="status" className="mb-3 rounded-xl">
+          <AlertTriangle aria-hidden="true" />
+          <AlertDescription>
             Search partially complete
             {failedProviders.length > 0 && (
               <>
@@ -101,94 +103,82 @@ export function SearchStatus({
               </>
             )}
             {total !== null && <> · {total} matching roles</>}
-          </span>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {warnings.length > 0 &&
         view === "discover" &&
         statusKind !== "partial" &&
         statusKind !== "failed" && (
-          <div
-            className="mb-3 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-foreground"
-            role="status"
-          >
-            <AlertTriangle
-              className="mt-0.5 size-4 shrink-0"
-              aria-hidden="true"
-            />
-            <span>{warnings[0]}</span>
-          </div>
+          <Alert variant="warning" role="status" className="mb-3 rounded-xl">
+            <AlertTriangle aria-hidden="true" />
+            <AlertDescription>{warnings[0]}</AlertDescription>
+          </Alert>
         )}
 
       {searchExpired && view === "discover" && (
-        <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-destructive-border bg-destructive-soft px-3 py-2 text-sm text-destructive"
-          role="alert"
-        >
-          <span>Search expired · start a new search to save roles</span>
+        <Alert variant="destructive" className="mb-3 rounded-xl">
+          <AlertDescription>
+            Search expired · start a new search to save roles
+          </AlertDescription>
           {onRunSearch && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 rounded-lg"
-              onClick={onRunSearch}
-            >
-              Run search
-            </Button>
+            <AlertAction>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg"
+                onClick={onRunSearch}
+              >
+                Run search
+              </Button>
+            </AlertAction>
           )}
-        </div>
+        </Alert>
       )}
 
       {statusKind === "offline" && (
-        <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-info-border bg-info-soft px-3 py-2 text-sm text-info-foreground"
-          role="alert"
-        >
-          <span>{notice}</span>
+        <Alert variant="info" className="mb-3 rounded-xl">
+          <AlertDescription>{notice}</AlertDescription>
           {onRetry && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 rounded-lg"
-              onClick={onRetry}
-            >
-              <RefreshCw className="size-3.5" />
-              Retry
-            </Button>
+            <AlertAction>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg"
+                onClick={onRetry}
+              >
+                <RefreshCw className="size-3.5" />
+                Retry
+              </Button>
+            </AlertAction>
           )}
-        </div>
+        </Alert>
       )}
 
       {statusKind === "validation" && (
-        <div
-          className="mb-3 rounded-xl border border-destructive-border bg-destructive-soft px-3 py-2 text-sm text-destructive"
-          role="alert"
-        >
-          {notice}
-        </div>
+        <Alert variant="destructive" className="mb-3 rounded-xl">
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
       )}
 
       {statusKind === "failed" && view === "discover" && (
-        <div
-          className="mb-3 rounded-xl border border-destructive-border bg-destructive-soft px-3 py-2 text-sm text-destructive"
-          role="alert"
-        >
-          {notice}
-        </div>
+        <Alert variant="destructive" className="mb-3 rounded-xl">
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
       )}
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {loading ? (
-          <LoaderCircle
-            className="size-4 animate-spin text-primary motion-reduce:animate-none"
+          <Spinner
+            className="text-primary motion-reduce:animate-none"
             aria-hidden="true"
           />
         ) : (
           <Sparkles className="size-4 text-primary" aria-hidden="true" />
         )}
         <span className="min-w-0 break-words" data-testid="search-notice">
-          {notice}
+          {stripNotice}
         </span>
         {checked > 0 && view === "discover" && (
           <span className="ml-auto shrink-0 tabular-nums">
@@ -196,20 +186,30 @@ export function SearchStatus({
           </span>
         )}
         {view === "discover" && onRefresh && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="ml-auto h-8 rounded-lg text-primary"
-            onClick={onRefresh}
-            aria-label="Refresh default search"
-          >
-            <RefreshCw className="size-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto h-8 rounded-lg text-primary"
+                  onClick={onRefresh}
+                  aria-label="Refresh default search"
+                >
+                  <RefreshCw className="size-3.5" />
+                </Button>
+              }
+            />
+            <TooltipContent>Refresh default search</TooltipContent>
+          </Tooltip>
         )}
       </div>
 
       {view === "discover" && providerStatuses.length > 0 && (
-        <ul className="mt-3 space-y-2" aria-label="Provider search status">
+        <ul
+          className="mt-3 flex flex-col gap-2"
+          aria-label="Provider search status"
+        >
           {providerStatuses.map((entry) => (
             <li
               key={entry.provider}

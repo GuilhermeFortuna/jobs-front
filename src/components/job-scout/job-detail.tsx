@@ -11,6 +11,9 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isSavedJob, money, type DisplayJob } from "@/lib/job-utils";
 import {
   formatProviderName,
@@ -37,40 +40,44 @@ function SourceLinks({
 }) {
   const label = formatProviderName(provider);
   return (
-    <div className="rounded-xl border bg-surface p-4">
-      <p className="text-sm font-semibold text-foreground">
-        {isPrimary ? "Primary source" : label}
-        {isPrimary && (
-          <span className="ml-2 font-normal text-muted-foreground">
-            ({label})
-          </span>
-        )}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-3 text-sm">
-        <a
-          href={jobUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={`View ${label} listing`}
-          className="inline-flex items-center gap-1.5 font-semibold text-primary"
-        >
-          View listing
-          <ExternalLink className="size-4" aria-hidden="true" />
-        </a>
-        {applyUrl && (
+    <Card size="sm" className="rounded-xl border bg-surface ring-0">
+      <CardHeader>
+        <CardTitle className="text-sm font-semibold text-foreground">
+          {isPrimary ? "Primary source" : label}
+          {isPrimary && (
+            <span className="ml-2 font-normal text-muted-foreground">
+              ({label})
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-3 text-sm">
           <a
-            href={applyUrl}
+            href={jobUrl}
             target="_blank"
             rel="noreferrer"
-            aria-label={`Apply via ${label}`}
+            aria-label={`View ${label} listing`}
             className="inline-flex items-center gap-1.5 font-semibold text-primary"
           >
-            Apply
+            View listing
             <ExternalLink className="size-4" aria-hidden="true" />
           </a>
-        )}
-      </div>
-    </div>
+          {applyUrl && (
+            <a
+              href={applyUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Apply via ${label}`}
+              className="inline-flex items-center gap-1.5 font-semibold text-primary"
+            >
+              Apply
+              <ExternalLink className="size-4" aria-hidden="true" />
+            </a>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -152,7 +159,8 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </div>
         </div>
       )}
-      <div className="mt-6 grid grid-cols-2 gap-3 border-y py-5">
+      <Separator className="mt-6" />
+      <div className="grid grid-cols-2 gap-3 py-5">
         <Button
           variant="outline"
           className="h-11 rounded-xl"
@@ -169,41 +177,54 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           {isApplied ? "Applied" : "Mark as applied"}
         </Button>
       </div>
+      <Separator />
       <article className="mt-7 flex-1">
-        <div className="mb-6 flex gap-7 border-b text-sm font-semibold text-muted-foreground">
-          <span className="border-b-2 border-primary pb-3 text-primary">
-            Overview
-          </span>
-        </div>
-        <div className="whitespace-pre-line text-[15px] leading-7 text-foreground/80">
-          {job.description ||
-            "Open the source listing to read the full role description."}
-        </div>
-        <h3 className="mt-7 font-semibold text-foreground">Role details</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Badge variant="outline">{job.remote_type}</Badge>
-          <Badge variant="outline">
-            {job.employment_type.replaceAll("_", " ")}
-          </Badge>
-          {job.seniority && <Badge variant="outline">{job.seniority}</Badge>}
-        </div>
-        <h3 className="mt-7 font-semibold text-foreground">Sources</h3>
-        <div className="mt-3 space-y-3">
-          <SourceLinks
-            provider={job.provider}
-            jobUrl={job.job_url}
-            applyUrl={job.apply_url}
-            isPrimary
-          />
-          {alternates.map((source) => (
-            <SourceLinks
-              key={`${source.provider}:${source.provider_job_id}`}
-              provider={source.provider}
-              jobUrl={source.job_url}
-              applyUrl={source.apply_url}
-            />
-          ))}
-        </div>
+        <Tabs defaultValue="overview">
+          <TabsList
+            variant="line"
+            className="mb-6 h-auto w-full justify-start gap-7 rounded-none bg-transparent p-0"
+          >
+            <TabsTrigger
+              value="overview"
+              className="rounded-none border-b-2 border-transparent px-0 pb-3 data-active:border-primary data-active:shadow-none"
+            >
+              Overview
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="mt-0">
+            <div className="whitespace-pre-line text-[15px] leading-7 text-foreground/80">
+              {job.description ||
+                "Open the source listing to read the full role description."}
+            </div>
+            <h3 className="mt-7 font-semibold text-foreground">Role details</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant="outline">{job.remote_type}</Badge>
+              <Badge variant="outline">
+                {job.employment_type.replaceAll("_", " ")}
+              </Badge>
+              {job.seniority && (
+                <Badge variant="outline">{job.seniority}</Badge>
+              )}
+            </div>
+            <h3 className="mt-7 font-semibold text-foreground">Sources</h3>
+            <div className="mt-3 flex flex-col gap-3">
+              <SourceLinks
+                provider={job.provider}
+                jobUrl={job.job_url}
+                applyUrl={job.apply_url}
+                isPrimary
+              />
+              {alternates.map((source) => (
+                <SourceLinks
+                  key={`${source.provider}:${source.provider_job_id}`}
+                  provider={source.provider}
+                  jobUrl={source.job_url}
+                  applyUrl={source.apply_url}
+                />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </article>
       {hasRemoteOkSource(job) && (
         <p className="mt-8 text-sm leading-6 text-muted-foreground">
@@ -218,7 +239,8 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </a>
         </p>
       )}
-      <footer className="mt-6 flex items-center border-t pt-5 text-sm text-muted-foreground">
+      <Separator className="mt-6" />
+      <footer className="flex items-center pt-5 text-sm text-muted-foreground">
         {saved && (
           <Button
             variant="ghost"

@@ -4,13 +4,24 @@ import { Filter, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DeleteJobDialog } from "@/components/job-scout/delete-job-dialog";
+import {
+  DetailEmptyState,
+  EmptyState,
+} from "@/components/job-scout/empty-states";
 import { FiltersPanel } from "@/components/job-scout/filters-panel";
 import { Header } from "@/components/job-scout/header";
-import { EmptyState, JobCard } from "@/components/job-scout/job-card";
+import { JobCard } from "@/components/job-scout/job-card";
 import { JobDetail } from "@/components/job-scout/job-detail";
+import { NoticeToaster } from "@/components/job-scout/notice-toaster";
 import { SearchStatus } from "@/components/job-scout/search-status";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -18,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -26,6 +38,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useJobScout } from "@/hooks/use-job-scout";
 import type { SearchFilters } from "@/lib/api";
 import { DETAIL_PANE_BREAKPOINT_PX } from "@/lib/breakpoints";
@@ -53,6 +71,7 @@ export function JobScout() {
 
   return (
     <main className="flex h-dvh min-h-[680px] flex-col overflow-hidden bg-background text-foreground">
+      <NoticeToaster notice={scout.notice} />
       <Header
         view={scout.view}
         setView={(next) => {
@@ -73,25 +92,30 @@ export function JobScout() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[272px] shrink-0 overflow-y-auto border-r bg-card px-5 py-6 lg:block">
-          <FiltersPanel
-            providers={scout.providers}
-            filters={scout.filters}
-            setFilters={scout.setFilters}
-            onSearch={() => void scout.runSearch()}
-            onSaveDefaults={() => void scout.saveDefaults()}
-            disabled={!scout.apiOnline && scout.jobs.length === 0}
-          />
-        </aside>
+        <Card className="hidden w-[272px] shrink-0 rounded-none border-0 border-r bg-card py-0 ring-0 lg:flex lg:flex-col">
+          <ScrollArea className="h-full">
+            <div className="px-5 py-6">
+              <FiltersPanel
+                providers={scout.providers}
+                filters={scout.filters}
+                setFilters={scout.setFilters}
+                onSearch={() => void scout.runSearch()}
+                onSaveDefaults={() => void scout.saveDefaults()}
+                disabled={!scout.apiOnline && scout.jobs.length === 0}
+              />
+            </div>
+          </ScrollArea>
+        </Card>
 
-        <section className="flex min-w-0 flex-1 flex-col border-r bg-surface xl:max-w-[540px]">
+        <Card className="flex min-w-0 flex-1 flex-col rounded-none border-0 border-r bg-surface py-0 ring-0 xl:max-w-[540px]">
           <div className="border-b bg-card px-4 py-4 lg:hidden">
             <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
+              <InputGroup className="h-11 flex-1 rounded-xl">
+                <InputGroupAddon>
+                  <Search aria-hidden="true" />
+                </InputGroupAddon>
+                <InputGroupInput
                   aria-label="Search keywords"
-                  className="h-11 rounded-xl pl-9"
                   value={scout.filters.query}
                   onChange={(event) =>
                     scout.setFilters({
@@ -103,42 +127,50 @@ export function JobScout() {
                     event.key === "Enter" && void scout.runSearch()
                   }
                 />
-              </div>
+              </InputGroup>
               <Sheet>
-                <SheetTrigger
-                  render={
-                    <Button
-                      variant="outline"
-                      size="icon-lg"
-                      className="relative h-11 w-11 rounded-xl"
-                      aria-label="Open filters"
-                    />
-                  }
-                >
-                  <Filter />
-                  <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                    {activeFilters}
-                  </span>
-                </SheetTrigger>
-                <SheetContent
-                  side="left"
-                  className="w-[330px] overflow-y-auto p-5"
-                >
-                  <SheetHeader>
-                    <SheetTitle>Search filters</SheetTitle>
-                    <SheetDescription>
-                      Shape the roles in this search.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-5">
-                    <FiltersPanel
-                      providers={scout.providers}
-                      filters={scout.filters}
-                      setFilters={scout.setFilters}
-                      onSearch={() => void scout.runSearch()}
-                      onSaveDefaults={() => void scout.saveDefaults()}
-                    />
-                  </div>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SheetTrigger
+                        render={
+                          <Button
+                            variant="outline"
+                            size="icon-lg"
+                            className="relative h-11 w-11 rounded-xl"
+                            aria-label="Open filters"
+                          >
+                            <Filter />
+                            <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                              {activeFilters}
+                            </span>
+                          </Button>
+                        }
+                      />
+                    }
+                  />
+                  <TooltipContent>Open filters</TooltipContent>
+                </Tooltip>
+                <SheetContent side="left" className="w-[330px] p-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-5">
+                      <SheetHeader>
+                        <SheetTitle>Search filters</SheetTitle>
+                        <SheetDescription>
+                          Shape the roles in this search.
+                        </SheetDescription>
+                      </SheetHeader>
+                      <div className="mt-5">
+                        <FiltersPanel
+                          providers={scout.providers}
+                          filters={scout.filters}
+                          setFilters={scout.setFilters}
+                          onSearch={() => void scout.runSearch()}
+                          onSaveDefaults={() => void scout.saveDefaults()}
+                        />
+                      </div>
+                    </div>
+                  </ScrollArea>
                 </SheetContent>
               </Sheet>
             </div>
@@ -211,41 +243,46 @@ export function JobScout() {
             onRunSearch={() => void scout.runSearch()}
           />
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-20 sm:p-4 sm:pb-4">
-            {scout.jobs.length ? (
-              <div className="space-y-3">
-                {scout.jobs.map((job) => (
-                  <JobCard
-                    key={jobKey(job)}
-                    job={job}
-                    selected={jobKey(job) === selectedKey}
-                    onSelect={() => {
-                      scout.setSelected(job);
-                      if (window.innerWidth < DETAIL_PANE_BREAKPOINT_PX)
-                        setDetailOpen(true);
-                    }}
-                    onSave={() => {
-                      scout.setSelected(job);
-                      void scout.saveJob("saved", job);
-                    }}
-                  />
-                ))}
-              </div>
-            ) : scout.loading ? (
-              <div className="mx-auto flex max-w-sm flex-col items-center px-6 py-20 text-center text-sm text-muted-foreground">
-                Loading roles…
-              </div>
-            ) : (
-              <EmptyState
-                view={scout.view}
-                statusKind={scout.statusKind}
-                onDiscover={() => void scout.changeView("discover")}
-                onRetry={() => void scout.retryConnection()}
-              />
-            )}
-          </div>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="p-3 pb-20 sm:p-4 sm:pb-4">
+              {scout.jobs.length ? (
+                <div className="flex flex-col gap-3">
+                  {scout.jobs.map((job) => (
+                    <JobCard
+                      key={jobKey(job)}
+                      job={job}
+                      selected={jobKey(job) === selectedKey}
+                      onSelect={() => {
+                        scout.setSelected(job);
+                        if (window.innerWidth < DETAIL_PANE_BREAKPOINT_PX)
+                          setDetailOpen(true);
+                      }}
+                      onSave={() => {
+                        scout.setSelected(job);
+                        void scout.saveJob("saved", job);
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : scout.loading ? (
+                <div className="mx-auto flex max-w-sm flex-col items-center gap-3 px-6 py-20">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                  <span className="sr-only">Loading roles…</span>
+                </div>
+              ) : (
+                <EmptyState
+                  view={scout.view}
+                  statusKind={scout.statusKind}
+                  onDiscover={() => void scout.changeView("discover")}
+                  onRetry={() => void scout.retryConnection()}
+                />
+              )}
+            </div>
+          </ScrollArea>
 
-          <footer className="hidden h-12 items-center border-t bg-card px-5 text-sm text-muted-foreground sm:flex">
+          <footer className="relative hidden h-12 items-center bg-card px-5 text-sm text-muted-foreground sm:flex">
+            <Separator className="absolute inset-x-0 top-0" />
             {scout.view === "discover" && scout.total === null
               ? `${scout.jobs.length} roles loaded so far`
               : scout.view === "discover"
@@ -257,21 +294,21 @@ export function JobScout() {
               </span>
             )}
           </footer>
-        </section>
+        </Card>
 
-        <section className="hidden min-w-0 flex-1 overflow-y-auto bg-card xl:block">
-          {scout.selected ? (
-            <JobDetail
-              job={scout.selected}
-              onSave={(state) => void scout.saveJob(state)}
-              onRemove={() => scout.confirmDelete(scout.selected!)}
-            />
-          ) : (
-            <div className="grid h-full place-items-center text-sm text-muted-foreground">
-              Select a role to view details
-            </div>
-          )}
-        </section>
+        <Card className="hidden min-w-0 flex-1 rounded-none border-0 bg-card py-0 ring-0 xl:flex xl:flex-col">
+          <ScrollArea className="h-full">
+            {scout.selected ? (
+              <JobDetail
+                job={scout.selected}
+                onSave={(state) => void scout.saveJob(state)}
+                onRemove={() => scout.confirmDelete(scout.selected!)}
+              />
+            ) : (
+              <DetailEmptyState />
+            )}
+          </ScrollArea>
+        </Card>
       </div>
 
       <Sheet
@@ -280,19 +317,21 @@ export function JobScout() {
       >
         <SheetContent
           side="bottom"
-          className="h-[92dvh] overflow-y-auto rounded-t-[22px] p-0 xl:hidden"
+          className="h-[92dvh] rounded-t-[22px] p-0 xl:hidden"
         >
-          <SheetHeader className="sr-only">
-            <SheetTitle>{scout.selected?.title ?? "Job details"}</SheetTitle>
-            <SheetDescription>Job details</SheetDescription>
-          </SheetHeader>
-          {scout.selected && (
-            <JobDetail
-              job={scout.selected}
-              onSave={(state) => void scout.saveJob(state)}
-              onRemove={() => scout.confirmDelete(scout.selected!)}
-            />
-          )}
+          <ScrollArea className="h-full">
+            <SheetHeader className="sr-only">
+              <SheetTitle>{scout.selected?.title ?? "Job details"}</SheetTitle>
+              <SheetDescription>Job details</SheetDescription>
+            </SheetHeader>
+            {scout.selected && (
+              <JobDetail
+                job={scout.selected}
+                onSave={(state) => void scout.saveJob(state)}
+                onRemove={() => scout.confirmDelete(scout.selected!)}
+              />
+            )}
+          </ScrollArea>
         </SheetContent>
       </Sheet>
 
