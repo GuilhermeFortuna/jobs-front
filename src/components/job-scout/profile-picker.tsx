@@ -205,32 +205,42 @@ export function ProfilePicker({
 
   const picker = (
     <div className="flex items-center gap-2">
-      <Select
-        value={profile?.id ?? "offline"}
-        onValueChange={(value) => {
-          const next = profiles.find((item) => item.id === value);
-          if (next) onSelect(next);
-        }}
+      <span
+        className="flex"
+        title={
+          profiles.length === 0
+            ? "No profiles yet - create one from Profile actions"
+            : undefined
+        }
       >
-        <SelectTrigger
-          className="h-10 min-w-[108px] rounded-xl border-border bg-surface"
-          aria-label="Select profile"
+        <Select
+          disabled={profiles.length === 0}
+          value={profile?.id ?? "offline"}
+          onValueChange={(value) => {
+            const next = profiles.find((item) => item.id === value);
+            if (next) onSelect(next);
+          }}
         >
-          <Avatar className="size-6">
-            <AvatarFallback className="bg-primary-soft text-xs font-bold text-primary">
-              {profile?.display_name?.[0] ?? "?"}
-            </AvatarFallback>
-          </Avatar>
-          <SelectValue>{profile?.display_name ?? "Profile"}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {profiles.map((item) => (
-            <SelectItem key={item.id} value={item.id}>
-              {item.display_name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          <SelectTrigger
+            className="h-10 min-w-[108px] rounded-xl border-border bg-surface dark:bg-surface"
+            aria-label="Select profile"
+          >
+            <Avatar className="size-6">
+              <AvatarFallback className="bg-primary-soft text-xs font-bold text-primary-emphasis dark:text-primary">
+                {profile?.display_name?.[0] ?? "?"}
+              </AvatarFallback>
+            </Avatar>
+            <SelectValue>{profile?.display_name ?? "Profile"}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {profiles.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {item.display_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </span>
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -386,7 +396,7 @@ export function ProfilePicker({
                             {label}
                             <button
                               type="button"
-                              className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-primary focus-ring"
+                              className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-primary-emphasis focus-ring dark:hover:text-primary"
                               aria-label={`Remove ${label}`}
                               onClick={() => removeSkill(label)}
                             >

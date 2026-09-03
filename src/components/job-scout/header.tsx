@@ -66,7 +66,7 @@ function ViewTabs({
             key={id}
             value={id}
             className={cn(
-              "h-full rounded-none px-1 capitalize text-muted-foreground shadow-none data-active:font-semibold data-active:text-primary",
+              "h-full rounded-none px-1 capitalize text-muted-foreground shadow-none data-active:font-semibold data-active:text-primary-emphasis dark:data-active:text-primary",
               layout === "mobile"
                 ? "flex-1 flex-col gap-1 text-[11px] after:hidden"
                 : "flex-none flex-row gap-2 text-sm after:block after:bg-primary",
@@ -98,11 +98,11 @@ export function Header({
 }: HeaderProps) {
   return (
     <>
-      <header className="relative flex h-[68px] shrink-0 items-center gap-3 border-b bg-card/95 px-4 shadow-sm backdrop-blur-sm sm:px-6">
+      <header className="relative flex h-[68px] shrink-0 items-center gap-3 border-b bg-background/95 px-4 shadow-sm backdrop-blur-sm sm:px-6">
         <HeaderAmbient />
 
         <div className="relative z-10 flex shrink-0 items-center gap-3 lg:w-[246px]">
-          <div className="grid size-9 place-items-center rounded-xl bg-brand-mark text-primary-foreground shadow-sm">
+          <div className="grid size-9 place-items-center rounded-xl bg-brand-mark text-background shadow-sm">
             <Search className="size-5" aria-hidden="true" />
           </div>
           <span className="font-display text-lg font-bold tracking-[-0.02em]">
@@ -135,7 +135,7 @@ export function Header({
         </div>
       </header>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 flex h-[calc(66px+env(safe-area-inset-bottom,0px))] items-end bg-card/95 px-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 flex h-[calc(66px+env(safe-area-inset-bottom,0px))] items-end bg-background/95 px-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur sm:hidden">
         <Separator className="absolute inset-x-0 top-0" />
         <nav
           aria-label="Main navigation"

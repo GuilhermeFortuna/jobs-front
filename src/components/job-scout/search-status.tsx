@@ -89,7 +89,7 @@ function ProviderStatusIcon({
   if (status === "loading") {
     return (
       <Spinner
-        className="size-3.5 text-primary motion-reduce:animate-none"
+        className="size-3.5 text-primary-emphasis motion-reduce:animate-none dark:text-primary"
         aria-hidden="true"
       />
     );
@@ -306,7 +306,7 @@ export function SearchStatus({
   );
 
   return (
-    <div className="border-b bg-card px-5 py-5" data-testid="search-status">
+    <div className="border-b bg-surface px-5 py-5" data-testid="search-status">
       <div className="sr-only" aria-live="polite">
         {liveAnnouncement}
       </div>
@@ -322,11 +322,14 @@ export function SearchStatus({
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {loading ? (
           <Spinner
-            className="text-primary motion-reduce:animate-none"
+            className="text-primary-emphasis motion-reduce:animate-none dark:text-primary"
             aria-hidden="true"
           />
         ) : (
-          <Sparkles className="size-4 text-primary" aria-hidden="true" />
+          <Sparkles
+            className="size-4 text-primary-emphasis dark:text-primary"
+            aria-hidden="true"
+          />
         )}
         <span className="min-w-0 break-words" data-testid="search-notice">
           {stripNotice}
@@ -343,7 +346,7 @@ export function SearchStatus({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="ml-auto h-8 rounded-lg text-primary"
+                  className="ml-auto h-8 rounded-lg text-primary-emphasis dark:text-primary"
                   onClick={onRefresh}
                   aria-label="Refresh default search"
                 >

@@ -108,6 +108,8 @@ test.describe("design reference capture", () => {
     await page.getByRole("button", { name: /Theme/i }).click();
     await page.getByRole("menuitem", { name: "Dark" }).click({ force: true });
     await page.locator("html.dark").waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByRole("menu").waitFor({ state: "hidden" });
     await page.screenshot({
       path: path.join(OUT, "job-scout-desktop-dark.png"),
       fullPage: false,
@@ -134,6 +136,8 @@ test.describe("design reference capture", () => {
     await page.getByRole("button", { name: /Theme/i }).click();
     await page.getByRole("menuitem", { name: "Dark" }).click({ force: true });
     await page.locator("html.dark").waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByRole("menu").waitFor({ state: "hidden" });
     await page.screenshot({
       path: path.join(OUT, "job-scout-mobile-dark.png"),
       fullPage: false,

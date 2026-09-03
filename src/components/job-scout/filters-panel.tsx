@@ -174,7 +174,7 @@ export function FiltersPanel({
         <h2 className="font-semibold">Filters</h2>
         <Button
           variant="link"
-          className="h-auto p-0 text-primary"
+          className="h-auto p-0 text-primary-emphasis dark:text-primary"
           onClick={() => setFilters(DEFAULT_FILTERS)}
           disabled={disabled}
         >

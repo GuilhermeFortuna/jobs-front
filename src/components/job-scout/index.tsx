@@ -104,7 +104,7 @@ export function JobScout() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <Card className="hidden w-[272px] shrink-0 rounded-none border-0 border-r bg-card py-0 shadow-none ring-0 lg:flex lg:flex-col">
+        <Card className="hidden w-[272px] shrink-0 rounded-none border-0 border-r bg-background py-0 shadow-none ring-0 lg:flex lg:flex-col">
           <ScrollArea className="h-full">
             <div className="px-5 py-6">
               <FiltersPanel
@@ -119,8 +119,8 @@ export function JobScout() {
           </ScrollArea>
         </Card>
 
-        <Card className="flex min-w-0 flex-1 flex-col rounded-none border-0 border-r bg-surface py-0 shadow-card ring-0 xl:max-w-[540px]">
-          <div className="border-b bg-card px-4 py-4 lg:hidden">
+        <Card className="flex min-w-0 flex-1 flex-col rounded-none border-0 border-r bg-background py-0 shadow-card ring-0 xl:max-w-[540px]">
+          <div className="border-b bg-surface px-4 py-4 lg:hidden">
             <div className="flex gap-2">
               <InputGroup className="h-11 flex-1 rounded-xl">
                 <InputGroupAddon>
@@ -188,7 +188,7 @@ export function JobScout() {
             </div>
           </div>
 
-          <div className="border-b bg-card px-5 py-5">
+          <div className="border-b bg-surface px-5 py-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -228,7 +228,7 @@ export function JobScout() {
                   Ordered by how well each role matches your{" "}
                   <button
                     type="button"
-                    className="font-semibold text-primary underline-offset-2 hover:underline focus-ring"
+                    className="font-semibold text-primary-emphasis underline-offset-2 hover:underline focus-ring dark:text-primary"
                     onClick={() => setSkillsOpen(true)}
                   >
                     profile skills
@@ -311,7 +311,7 @@ export function JobScout() {
             </div>
           </ScrollArea>
 
-          <footer className="relative hidden min-h-12 flex-col justify-center gap-2 bg-card px-5 py-2 text-sm text-muted-foreground sm:flex">
+          <footer className="relative hidden min-h-12 flex-col justify-center gap-2 bg-background px-5 py-2 text-sm text-muted-foreground sm:flex">
             <Separator className="absolute inset-x-0 top-0" />
             <div className="flex items-center">
               {scout.view === "discover" && scout.total === null
@@ -335,7 +335,7 @@ export function JobScout() {
           </footer>
         </Card>
 
-        <Card className="hidden min-w-0 flex-1 rounded-none border-0 bg-card py-0 shadow-none ring-0 xl:flex xl:flex-col">
+        <Card className="hidden min-w-0 flex-1 rounded-none border-0 bg-background py-0 shadow-none ring-0 xl:flex xl:flex-col">
           <ScrollArea className="h-full">
             {scout.selected ? (
               <JobDetail

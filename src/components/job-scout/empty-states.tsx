@@ -122,7 +122,7 @@ export function EmptyState({
         <EmptyHeader>
           <EmptyMedia
             variant="icon"
-            className="size-12 rounded-2xl bg-primary-soft text-primary"
+            className="size-12 rounded-2xl bg-primary-soft text-primary-emphasis dark:text-primary"
           >
             {view === "applied" ? <BriefcaseBusiness /> : <Bookmark />}
           </EmptyMedia>

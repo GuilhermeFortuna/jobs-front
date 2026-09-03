@@ -27,7 +27,10 @@ function stubMatchMedia(matches: Record<string, boolean>) {
 
 describe("HeaderAmbient", () => {
   beforeEach(() => {
-    document.documentElement.style.setProperty("--primary", "rgb(61, 73, 223)");
+    document.documentElement.style.setProperty(
+      "--primary",
+      "rgb(198, 242, 74)",
+    );
   });
 
   it("is decorative, non-interactive, and aria-hidden", () => {

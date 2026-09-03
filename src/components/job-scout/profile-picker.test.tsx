@@ -76,6 +76,28 @@ describe("ProfilePicker skills editor", () => {
     expect(screen.getByText(/re-rank the next search/i)).toBeInTheDocument();
   });
 
+  it("marks the profile select unavailable when there are no profiles", () => {
+    render(
+      <ProfilePicker
+        profiles={[]}
+        profile={null}
+        onSelect={vi.fn()}
+        onCreate={vi.fn()}
+        onRename={vi.fn()}
+        onUpdateSkills={vi.fn()}
+      />,
+    );
+
+    // With no items the popup collapses to nothing, so the trigger must read
+    // as unavailable rather than opening an empty, invisible listbox.
+    expect(
+      screen.getByRole("combobox", { name: "Select profile" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByTitle(/create one from Profile actions/i),
+    ).toBeInTheDocument();
+  });
+
   it("renders the profile select once when the mobile sheet is open", () => {
     render(
       <ProfilePicker

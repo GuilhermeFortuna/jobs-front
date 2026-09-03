@@ -59,7 +59,7 @@ function SourceLinks({
             target="_blank"
             rel="noreferrer"
             aria-label={`View ${label} listing`}
-            className="inline-flex items-center gap-1.5 font-semibold text-primary"
+            className="inline-flex items-center gap-1.5 font-semibold text-primary-emphasis dark:text-primary"
           >
             View listing
             <ExternalLink className="size-4" aria-hidden="true" />
@@ -70,7 +70,7 @@ function SourceLinks({
               target="_blank"
               rel="noreferrer"
               aria-label={`Apply via ${label}`}
-              className="inline-flex items-center gap-1.5 font-semibold text-primary"
+              className="inline-flex items-center gap-1.5 font-semibold text-primary-emphasis dark:text-primary"
             >
               Apply
               <ExternalLink className="size-4" aria-hidden="true" />
@@ -110,7 +110,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
               target="_blank"
               rel="noreferrer"
               aria-label={`Open ${job.title} listing on ${formatProviderName(job.provider)}`}
-              className="text-primary"
+              className="text-primary-emphasis dark:text-primary"
             >
               <ExternalLink className="size-4" />
             </a>
@@ -128,7 +128,10 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
         </span>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Badge className="border-0 bg-success-soft px-3 py-1 text-success-foreground">
+        <Badge
+          variant="outline"
+          className="border-data-border px-3 py-1 text-data-foreground"
+        >
           {money(job)} {job.salary_currency ?? ""}
         </Badge>
         <Badge variant="outline" className="break-words">
@@ -154,7 +157,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
               <Badge
                 key={skill}
                 variant="outline"
-                className="border-primary-border bg-primary-soft px-3 py-1 text-primary"
+                className="border-primary-border bg-primary-soft px-3 py-1 text-primary-emphasis dark:text-primary"
               >
                 {skill}
               </Badge>
@@ -173,7 +176,8 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           {isSaved ? "Saved" : isApplied ? "Move to saved" : "Save"}
         </Button>
         <Button
-          className="h-11 rounded-xl bg-applied text-applied-foreground hover:bg-applied-hover"
+          variant="outline"
+          className="h-11 rounded-xl border-applied-border bg-transparent text-applied-foreground hover:bg-applied-soft hover:text-applied-foreground dark:border-applied-border dark:bg-transparent dark:hover:bg-applied-soft"
           onClick={() => onSave("applied")}
         >
           <CheckCircle2 />
@@ -241,7 +245,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           {REMOTEOK_ATTRIBUTION.text}{" "}
           <a
             href={REMOTEOK_ATTRIBUTION.url}
-            className="font-semibold text-primary"
+            className="font-semibold text-primary-emphasis dark:text-primary"
             target="_blank"
             rel="noreferrer"
           >

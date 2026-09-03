@@ -86,11 +86,31 @@ test.describe("theme switching", () => {
 
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveClass(/dark/);
-    const bg = await page.evaluate(
-      () => getComputedStyle(document.body).backgroundColor,
-    );
-    expect(bg).not.toBe("rgb(247, 248, 251)");
-    expect(bg).toBe("rgb(14, 18, 32)");
+    const { bodyBg, tokenBg, lightBg } = await page.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "var(--background)";
+      document.body.appendChild(probe);
+      const token = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+
+      // Light theme token for a not-equal check without hardcoding JE-016 hex.
+      const wasDark = document.documentElement.classList.contains("dark");
+      document.documentElement.classList.remove("dark");
+      const lightProbe = document.createElement("div");
+      lightProbe.style.backgroundColor = "var(--background)";
+      document.body.appendChild(lightProbe);
+      const light = getComputedStyle(lightProbe).backgroundColor;
+      lightProbe.remove();
+      if (wasDark) document.documentElement.classList.add("dark");
+
+      return {
+        bodyBg: getComputedStyle(document.body).backgroundColor,
+        tokenBg: token,
+        lightBg: light,
+      };
+    });
+    expect(bodyBg).toBe(tokenBg);
+    expect(bodyBg).not.toBe(lightBg);
   });
 
   test("theme toggle switches light, dark, and system", async ({ page }) => {

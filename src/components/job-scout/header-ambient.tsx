@@ -34,7 +34,7 @@ function useNarrowViewport(): boolean {
 }
 
 function useThemePrimaryColor(): string {
-  const [color, setColor] = useState("rgb(61, 73, 223)");
+  const [color, setColor] = useState("rgb(198, 242, 74)");
 
   useEffect(() => {
     const read = () => {
@@ -80,13 +80,13 @@ export function HeaderAmbient({ className }: { className?: string }) {
           squareSize={3}
           gridGap={5}
           flickerChance={0.12}
-          maxOpacity={0.18}
+          maxOpacity={0.07}
           color={color}
         />
       ) : (
         <div
           data-testid="header-ambient-static"
-          className="absolute inset-0 opacity-[0.12] [mask-image:linear-gradient(to_bottom,black_40%,transparent)]"
+          className="absolute inset-0 opacity-[0.05] [mask-image:linear-gradient(to_bottom,black_40%,transparent)]"
           style={{
             backgroundImage: `radial-gradient(circle, ${color} 1px, transparent 1px)`,
             backgroundSize: "10px 10px",

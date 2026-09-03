@@ -56,6 +56,7 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
         JOB_CARD_SHELL_CLASS,
         "group relative cursor-pointer ring-0 transition hover:-translate-y-0.5 hover:border-primary-border hover:shadow-card-hover motion-reduce:transform-none focus-ring",
         selected && "border-ring bg-selected ring-1 ring-ring",
+        applied && "border-l-[3px] border-l-applied-border",
       )}
       onClick={onSelect}
       tabIndex={0}
@@ -92,7 +93,7 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
                 <button
                   type="button"
                   aria-label={saveLabel}
-                  className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-primary focus-ring"
+                  className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-primary-emphasis focus-ring dark:hover:text-primary"
                   onClick={(event) => {
                     event.stopPropagation();
                     onSave();
@@ -102,7 +103,9 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
                     <BookmarkCheck
                       className={cn(
                         "size-5",
-                        applied ? "text-applied" : "text-primary",
+                        applied
+                          ? "text-applied-foreground"
+                          : "text-primary-emphasis dark:text-primary",
                       )}
                     />
                   ) : (
@@ -121,7 +124,12 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
             <Globe2 className="size-3.5" aria-hidden="true" />
             {job.location_text ?? "Remote"}
           </span>
-          <span className="font-medium text-foreground">{money(job)}</span>
+          <Badge
+            variant="outline"
+            className="border-data-border font-medium text-data-foreground"
+          >
+            {money(job)}
+          </Badge>
         </div>
         <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">
           <Badge variant="outline" className="max-w-full break-words">
@@ -132,17 +140,20 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
             {job.employment_type.replaceAll("_", " ")}
           </Badge>
           {job.seniority && (
-            <Badge variant="outline" className="text-primary">
+            <Badge
+              variant="outline"
+              className="text-primary-emphasis dark:text-primary"
+            >
               {job.seniority}
             </Badge>
           )}
           {applied && (
-            <Badge className="border-0 bg-applied-soft text-destructive">
+            <Badge className="border border-applied-border bg-applied-soft text-applied-foreground">
               Applied
             </Badge>
           )}
           {saved && !applied && (
-            <Badge className="border-0 bg-primary-soft text-primary">
+            <Badge className="border-0 bg-primary-soft text-primary-emphasis dark:text-primary">
               Saved
             </Badge>
           )}
@@ -159,7 +170,7 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
               <Badge
                 key={skill}
                 variant="outline"
-                className="border-primary-border bg-primary-soft text-primary"
+                className="border-primary-border bg-primary-soft text-primary-emphasis dark:text-primary"
               >
                 {skill}
               </Badge>
