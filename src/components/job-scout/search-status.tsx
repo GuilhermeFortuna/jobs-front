@@ -40,17 +40,17 @@ function ProviderStatusIcon({
   if (status === "loading") {
     return (
       <LoaderCircle
-        className="size-3.5 animate-spin text-[#3d49df] motion-reduce:animate-none"
+        className="size-3.5 animate-spin text-primary motion-reduce:animate-none"
         aria-hidden="true"
       />
     );
   }
   if (status === "complete") {
     return (
-      <CheckCircle2 className="size-3.5 text-[#2f8a4d]" aria-hidden="true" />
+      <CheckCircle2 className="size-3.5 text-success" aria-hidden="true" />
     );
   }
-  return <XCircle className="size-3.5 text-[#c44a38]" aria-hidden="true" />;
+  return <XCircle className="size-3.5 text-destructive" aria-hidden="true" />;
 }
 
 export function SearchStatus({
@@ -74,14 +74,14 @@ export function SearchStatus({
   );
 
   return (
-    <div className="border-b bg-white px-5 py-5">
+    <div className="border-b bg-card px-5 py-5">
       <div className="sr-only" aria-live="polite">
         {liveAnnouncement}
       </div>
 
       {statusKind === "partial" && view === "discover" && (
         <div
-          className="mb-3 flex items-start gap-2 rounded-xl border border-[#f0dcc8] bg-[#fff8f2] px-3 py-2 text-sm text-[#8a5a32]"
+          className="mb-3 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-foreground"
           role="status"
         >
           <AlertTriangle
@@ -110,7 +110,7 @@ export function SearchStatus({
         statusKind !== "partial" &&
         statusKind !== "failed" && (
           <div
-            className="mb-3 flex items-start gap-2 rounded-xl border border-[#f0dcc8] bg-[#fff8f2] px-3 py-2 text-sm text-[#8a5a32]"
+            className="mb-3 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-foreground"
             role="status"
           >
             <AlertTriangle
@@ -123,7 +123,7 @@ export function SearchStatus({
 
       {searchExpired && view === "discover" && (
         <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#f0d4d0] bg-[#fff5f4] px-3 py-2 text-sm text-[#8a4038]"
+          className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-destructive-border bg-destructive-soft px-3 py-2 text-sm text-destructive"
           role="alert"
         >
           <span>Search expired · start a new search to save roles</span>
@@ -142,7 +142,7 @@ export function SearchStatus({
 
       {statusKind === "offline" && (
         <div
-          className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#dfe2eb] bg-[#fafbfc] px-3 py-2 text-sm text-[#56617d]"
+          className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-info-border bg-info-soft px-3 py-2 text-sm text-info-foreground"
           role="alert"
         >
           <span>{notice}</span>
@@ -162,7 +162,7 @@ export function SearchStatus({
 
       {statusKind === "validation" && (
         <div
-          className="mb-3 rounded-xl border border-[#f0d4d0] bg-[#fff5f4] px-3 py-2 text-sm text-[#8a4038]"
+          className="mb-3 rounded-xl border border-destructive-border bg-destructive-soft px-3 py-2 text-sm text-destructive"
           role="alert"
         >
           {notice}
@@ -171,21 +171,21 @@ export function SearchStatus({
 
       {statusKind === "failed" && view === "discover" && (
         <div
-          className="mb-3 rounded-xl border border-[#f0d4d0] bg-[#fff5f4] px-3 py-2 text-sm text-[#8a4038]"
+          className="mb-3 rounded-xl border border-destructive-border bg-destructive-soft px-3 py-2 text-sm text-destructive"
           role="alert"
         >
           {notice}
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-sm text-[#56617d]">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {loading ? (
           <LoaderCircle
-            className="size-4 animate-spin text-[#3d49df] motion-reduce:animate-none"
+            className="size-4 animate-spin text-primary motion-reduce:animate-none"
             aria-hidden="true"
           />
         ) : (
-          <Sparkles className="size-4 text-[#3d49df]" aria-hidden="true" />
+          <Sparkles className="size-4 text-primary" aria-hidden="true" />
         )}
         <span className="min-w-0 break-words">{notice}</span>
         {checked > 0 && view === "discover" && (
@@ -197,7 +197,7 @@ export function SearchStatus({
           <Button
             size="sm"
             variant="ghost"
-            className="ml-auto h-8 rounded-lg text-[#3d49df]"
+            className="ml-auto h-8 rounded-lg text-primary"
             onClick={onRefresh}
             aria-label="Refresh default search"
           >
@@ -211,7 +211,7 @@ export function SearchStatus({
           {providerStatuses.map((entry) => (
             <li
               key={entry.provider}
-              className="flex min-w-0 items-center gap-2 text-xs text-[#5f6982]"
+              className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground"
               role="status"
             >
               <ProviderStatusIcon status={entry.status} />
@@ -233,7 +233,7 @@ export function SearchStatus({
       {view === "discover" && (
         <Progress
           value={progress * 100}
-          className="mt-3 [&_[data-slot=progress-indicator]]:bg-[#3d49df]"
+          className="mt-3"
           aria-label="Search progress"
         />
       )}

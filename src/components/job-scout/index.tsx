@@ -51,7 +51,7 @@ export function JobScout() {
   const selectedKey = scout.selected ? jobKey(scout.selected) : null;
 
   return (
-    <main className="flex h-dvh min-h-[680px] flex-col overflow-hidden bg-[#f7f8fb] text-[#101936]">
+    <main className="flex h-dvh min-h-[680px] flex-col overflow-hidden bg-background text-foreground">
       <Header
         view={scout.view}
         setView={(next) => {
@@ -72,7 +72,7 @@ export function JobScout() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[272px] shrink-0 overflow-y-auto border-r bg-white px-5 py-6 lg:block">
+        <aside className="hidden w-[272px] shrink-0 overflow-y-auto border-r bg-card px-5 py-6 lg:block">
           <FiltersPanel
             providers={scout.providers}
             filters={scout.filters}
@@ -83,11 +83,11 @@ export function JobScout() {
           />
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col border-r bg-[#fafbfc] xl:max-w-[540px]">
-          <div className="border-b bg-white px-4 py-4 lg:hidden">
+        <section className="flex min-w-0 flex-1 flex-col border-r bg-surface xl:max-w-[540px]">
+          <div className="border-b bg-card px-4 py-4 lg:hidden">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#66708d]" />
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   aria-label="Search keywords"
                   className="h-11 rounded-xl pl-9"
@@ -115,7 +115,7 @@ export function JobScout() {
                   }
                 >
                   <Filter />
-                  <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#3d49df] text-[10px] text-white">
+                  <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-primary text-[10px] text-primary-foreground">
                     {activeFilters}
                   </span>
                 </SheetTrigger>
@@ -143,10 +143,10 @@ export function JobScout() {
             </div>
           </div>
 
-          <div className="border-b bg-white px-5 py-5">
+          <div className="border-b bg-card px-5 py-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6f7892]">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Personal search
                 </p>
                 <h1 className="mt-1 text-[25px] font-semibold tracking-[-0.025em]">
@@ -179,11 +179,11 @@ export function JobScout() {
             </div>
             {scout.view === "discover" &&
               scout.filters.sort === "relevance" && (
-                <p className="mt-3 text-sm text-[#6d7690]">
+                <p className="mt-3 text-sm text-muted-foreground">
                   Ordered by how well each role matches your{" "}
                   <button
                     type="button"
-                    className="font-semibold text-[#3d49df] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5964ed]"
+                    className="font-semibold text-primary underline-offset-2 hover:underline focus-ring"
                     onClick={() => setSkillsOpen(true)}
                   >
                     profile skills
@@ -230,7 +230,7 @@ export function JobScout() {
                 ))}
               </div>
             ) : scout.loading ? (
-              <div className="mx-auto flex max-w-sm flex-col items-center px-6 py-20 text-center text-sm text-[#6d7690]">
+              <div className="mx-auto flex max-w-sm flex-col items-center px-6 py-20 text-center text-sm text-muted-foreground">
                 Loading roles…
               </div>
             ) : (
@@ -243,7 +243,7 @@ export function JobScout() {
             )}
           </div>
 
-          <footer className="hidden h-12 items-center border-t bg-white px-5 text-sm text-[#6c7690] sm:flex">
+          <footer className="hidden h-12 items-center border-t bg-card px-5 text-sm text-muted-foreground sm:flex">
             {scout.view === "discover" && scout.total === null
               ? `${scout.jobs.length} roles loaded so far`
               : scout.view === "discover"
@@ -257,7 +257,7 @@ export function JobScout() {
           </footer>
         </section>
 
-        <section className="hidden min-w-0 flex-1 overflow-y-auto bg-white xl:block">
+        <section className="hidden min-w-0 flex-1 overflow-y-auto bg-card xl:block">
           {scout.selected ? (
             <JobDetail
               job={scout.selected}
@@ -265,7 +265,7 @@ export function JobScout() {
               onRemove={() => scout.confirmDelete(scout.selected!)}
             />
           ) : (
-            <div className="grid h-full place-items-center text-sm text-[#6d7690]">
+            <div className="grid h-full place-items-center text-sm text-muted-foreground">
               Select a role to view details
             </div>
           )}

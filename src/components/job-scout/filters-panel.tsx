@@ -56,7 +56,7 @@ function FilterGroup({
       {values.map((value) => (
         <label
           key={value}
-          className="flex cursor-pointer items-center gap-2.5 text-sm text-[#4e5872]"
+          className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground/80"
         >
           <Checkbox
             checked={selected.includes(value)}
@@ -96,7 +96,7 @@ export function FiltersPanel({
         <h2 className="font-semibold">Filters</h2>
         <Button
           variant="link"
-          className="h-auto p-0 text-[#3d49df]"
+          className="h-auto p-0 text-primary"
           onClick={() => setFilters(DEFAULT_FILTERS)}
           disabled={disabled}
         >
@@ -106,7 +106,7 @@ export function FiltersPanel({
       <label className="block space-y-2">
         <span className="text-sm font-semibold">Keywords</span>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#727b92]" />
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Search keywords"
             value={filters.query}
@@ -132,7 +132,7 @@ export function FiltersPanel({
           className="h-10 rounded-xl"
           disabled={disabled}
         />
-        <span className="block text-xs leading-5 text-[#7a849c]">
+        <span className="block text-xs leading-5 text-muted-foreground">
           Filters where the role is based. Distinct from eligibility below.
         </span>
       </label>
@@ -162,7 +162,7 @@ export function FiltersPanel({
             <SelectItem value="any">Any eligibility</SelectItem>
           </SelectContent>
         </Select>
-        <span className="block text-xs leading-5 text-[#7a849c]">
+        <span className="block text-xs leading-5 text-muted-foreground">
           Where a candidate may apply, not the role&apos;s office location.
         </span>
       </label>
@@ -186,7 +186,7 @@ export function FiltersPanel({
             <label
               key={key}
               className={cn(
-                "flex items-center gap-2.5 text-sm text-[#4e5872]",
+                "flex items-center gap-2.5 text-sm text-foreground/80",
                 unavailable
                   ? "cursor-not-allowed opacity-60"
                   : "cursor-pointer",
@@ -207,7 +207,7 @@ export function FiltersPanel({
             </label>
           );
         })}
-        <p className="text-xs leading-5 text-[#7a849c]">
+        <p className="text-xs leading-5 text-muted-foreground">
           Leave all unchecked to search every enabled provider.
         </p>
       </fieldset>
@@ -255,7 +255,7 @@ export function FiltersPanel({
         </Select>
       </label>
       <Button
-        className="h-10 w-full rounded-xl bg-[#3d49df] hover:bg-[#303ac2]"
+        className="h-10 w-full rounded-xl bg-primary hover:bg-primary-hover"
         onClick={onSearch}
         disabled={disabled}
       >
@@ -271,7 +271,7 @@ export function FiltersPanel({
         <BookmarkCheck />
         Save as default
       </Button>
-      <p className="text-xs leading-5 text-[#7a849c]">
+      <p className="text-xs leading-5 text-muted-foreground">
         Defaults belong only to the selected profile.
       </p>
     </div>

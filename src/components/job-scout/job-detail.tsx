@@ -37,11 +37,13 @@ function SourceLinks({
 }) {
   const label = formatProviderName(provider);
   return (
-    <div className="rounded-xl border bg-[#fafbfc] p-4">
-      <p className="text-sm font-semibold text-[#111936]">
+    <div className="rounded-xl border bg-surface p-4">
+      <p className="text-sm font-semibold text-foreground">
         {isPrimary ? "Primary source" : label}
         {isPrimary && (
-          <span className="ml-2 font-normal text-[#6d7690]">({label})</span>
+          <span className="ml-2 font-normal text-muted-foreground">
+            ({label})
+          </span>
         )}
       </p>
       <div className="mt-3 flex flex-wrap gap-3 text-sm">
@@ -50,7 +52,7 @@ function SourceLinks({
           target="_blank"
           rel="noreferrer"
           aria-label={`View ${label} listing`}
-          className="inline-flex items-center gap-1.5 font-semibold text-[#3d49df]"
+          className="inline-flex items-center gap-1.5 font-semibold text-primary"
         >
           View listing
           <ExternalLink className="size-4" aria-hidden="true" />
@@ -61,7 +63,7 @@ function SourceLinks({
             target="_blank"
             rel="noreferrer"
             aria-label={`Apply via ${label}`}
-            className="inline-flex items-center gap-1.5 font-semibold text-[#3d49df]"
+            className="inline-flex items-center gap-1.5 font-semibold text-primary"
           >
             Apply
             <ExternalLink className="size-4" aria-hidden="true" />
@@ -81,7 +83,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
   return (
     <div className="mx-auto flex min-h-full max-w-[760px] flex-col px-5 pb-24 pt-7 sm:px-8 sm:pb-8 lg:px-10">
       <div className="flex items-start gap-4">
-        <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[#111936] text-xl font-bold text-white">
+        <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-foreground text-xl font-bold text-background">
           {job.company.slice(0, 1)}
         </div>
         <div className="min-w-0">
@@ -95,14 +97,14 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
               target="_blank"
               rel="noreferrer"
               aria-label={`Open ${job.title} listing on ${formatProviderName(job.provider)}`}
-              className="text-[#3d49df]"
+              className="text-primary"
             >
               <ExternalLink className="size-4" />
             </a>
           </p>
         </div>
       </div>
-      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#5f6982]">
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Globe2 className="size-4" aria-hidden="true" />
           {job.location_text ?? "Remote"}
@@ -113,7 +115,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
         </span>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Badge className="border-0 bg-[#e9f7ec] px-3 py-1 text-[#236c39]">
+        <Badge className="border-0 bg-success-soft px-3 py-1 text-success-foreground">
           {money(job)} {job.salary_currency ?? ""}
         </Badge>
         <Badge variant="outline" className="break-words">
@@ -128,7 +130,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
       </div>
       {job.matched_skills && job.matched_skills.length > 0 && (
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-[#111936]">
+          <h3 className="text-sm font-semibold text-foreground">
             Matched skills
           </h3>
           <div
@@ -139,7 +141,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
               <Badge
                 key={skill}
                 variant="outline"
-                className="border-[#c9cef5] bg-[#f4f5ff] px-3 py-1 text-[#3d49df]"
+                className="border-primary-border bg-primary-soft px-3 py-1 text-primary"
               >
                 {skill}
               </Badge>
@@ -157,7 +159,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           {isSaved ? "Saved" : isApplied ? "Move to saved" : "Save"}
         </Button>
         <Button
-          className="h-11 rounded-xl bg-[#f26450] text-white hover:bg-[#df503d]"
+          className="h-11 rounded-xl bg-applied text-applied-foreground hover:bg-applied-hover"
           onClick={() => onSave("applied")}
         >
           <CheckCircle2 />
@@ -165,16 +167,16 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
         </Button>
       </div>
       <article className="mt-7 flex-1">
-        <div className="mb-6 flex gap-7 border-b text-sm font-semibold text-[#68728a]">
-          <span className="border-b-2 border-[#3d49df] pb-3 text-[#3d49df]">
+        <div className="mb-6 flex gap-7 border-b text-sm font-semibold text-muted-foreground">
+          <span className="border-b-2 border-primary pb-3 text-primary">
             Overview
           </span>
         </div>
-        <div className="whitespace-pre-line text-[15px] leading-7 text-[#3d4660]">
+        <div className="whitespace-pre-line text-[15px] leading-7 text-foreground/80">
           {job.description ||
             "Open the source listing to read the full role description."}
         </div>
-        <h3 className="mt-7 font-semibold text-[#111936]">Role details</h3>
+        <h3 className="mt-7 font-semibold text-foreground">Role details</h3>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge variant="outline">{job.remote_type}</Badge>
           <Badge variant="outline">
@@ -182,7 +184,7 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </Badge>
           {job.seniority && <Badge variant="outline">{job.seniority}</Badge>}
         </div>
-        <h3 className="mt-7 font-semibold text-[#111936]">Sources</h3>
+        <h3 className="mt-7 font-semibold text-foreground">Sources</h3>
         <div className="mt-3 space-y-3">
           <SourceLinks
             provider={job.provider}
@@ -201,11 +203,11 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
         </div>
       </article>
       {hasRemoteOkSource(job) && (
-        <p className="mt-8 text-sm leading-6 text-[#768098]">
+        <p className="mt-8 text-sm leading-6 text-muted-foreground">
           {REMOTEOK_ATTRIBUTION.text}{" "}
           <a
             href={REMOTEOK_ATTRIBUTION.url}
-            className="font-semibold text-[#3d49df]"
+            className="font-semibold text-primary"
             target="_blank"
             rel="noreferrer"
           >
@@ -213,11 +215,11 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </a>
         </p>
       )}
-      <footer className="mt-6 flex items-center border-t pt-5 text-sm text-[#768098]">
+      <footer className="mt-6 flex items-center border-t pt-5 text-sm text-muted-foreground">
         {saved && (
           <Button
             variant="ghost"
-            className="ml-auto text-[#b34438]"
+            className="ml-auto text-destructive"
             onClick={onRemove}
           >
             <Trash2 />

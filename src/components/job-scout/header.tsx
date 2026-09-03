@@ -3,6 +3,7 @@
 import { Bookmark, BriefcaseBusiness, Search, UserRound } from "lucide-react";
 
 import { ProfilePicker } from "@/components/job-scout/profile-picker";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { Profile } from "@/lib/api";
 import type { View } from "@/hooks/use-job-scout";
 import { cn } from "@/lib/utils";
@@ -39,12 +40,14 @@ export function Header({
   onSkillsOpenChange,
 }: HeaderProps) {
   return (
-    <header className="flex h-[68px] shrink-0 items-center border-b bg-white px-4 sm:px-6">
+    <header className="flex h-[68px] shrink-0 items-center border-b bg-card px-4 sm:px-6">
       <div className="flex items-center gap-3 lg:w-[246px]">
-        <div className="grid size-9 rotate-3 place-items-center rounded-xl bg-[#172158] text-white shadow-sm">
+        <div className="grid size-9 rotate-3 place-items-center rounded-xl bg-brand-mark text-primary-foreground shadow-sm">
           <Search className="size-5 -rotate-3" aria-hidden="true" />
         </div>
-        <span className="text-lg font-bold tracking-[-0.02em]">Job Scout</span>
+        <span className="font-display text-lg font-bold tracking-[-0.02em]">
+          Job Scout
+        </span>
       </div>
       <nav
         className="mx-auto hidden h-full items-center gap-8 sm:flex"
@@ -55,9 +58,9 @@ export function Header({
             key={item}
             type="button"
             className={cn(
-              "relative flex h-full items-center gap-2 capitalize text-[#525d78] transition-colors hover:text-[#16204a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5964ed]",
+              "relative flex h-full items-center gap-2 capitalize text-muted-foreground transition-colors hover:text-foreground focus-ring",
               view === item &&
-                "font-semibold text-[#303bd2] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#3d49df]",
+                "font-semibold text-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary",
             )}
             onClick={() => void setView(item)}
             aria-current={view === item ? "page" : undefined}
@@ -73,7 +76,8 @@ export function Header({
           </button>
         ))}
       </nav>
-      <div className="ml-auto hidden sm:block">
+      <div className="ml-auto hidden items-center gap-2 sm:flex">
+        <ThemeToggle />
         <ProfilePicker
           profiles={profiles}
           profile={profile}
@@ -87,7 +91,7 @@ export function Header({
         />
       </div>
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 flex h-[66px] items-center justify-around border-t bg-white/95 px-5 backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex h-[66px] items-center justify-around border-t bg-card/95 px-5 backdrop-blur sm:hidden"
         aria-label="Mobile navigation"
       >
         {(["discover", "saved", "applied"] as const).map((item) => (
@@ -96,8 +100,8 @@ export function Header({
             type="button"
             onClick={() => void setView(item)}
             className={cn(
-              "flex flex-col items-center gap-1 text-[11px] capitalize text-[#67718a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5964ed]",
-              view === item && "font-semibold text-[#3d49df]",
+              "flex flex-col items-center gap-1 text-[11px] capitalize text-muted-foreground focus-ring",
+              view === item && "font-semibold text-primary",
             )}
             aria-current={view === item ? "page" : undefined}
           >
@@ -113,7 +117,7 @@ export function Header({
         ))}
         <button
           type="button"
-          className="flex flex-col items-center gap-1 text-[11px] text-[#67718a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5964ed]"
+          className="flex flex-col items-center gap-1 text-[11px] text-muted-foreground focus-ring"
           onClick={() => setMobileProfileOpen(true)}
           aria-label="Open profile settings"
         >
@@ -121,7 +125,8 @@ export function Header({
           Profile
         </button>
       </nav>
-      <div className="sm:hidden">
+      <div className="flex items-center gap-1 sm:hidden">
+        <ThemeToggle />
         <ProfilePicker
           profiles={profiles}
           profile={profile}

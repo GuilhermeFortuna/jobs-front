@@ -178,11 +178,11 @@ export function ProfilePicker({
         }}
       >
         <SelectTrigger
-          className="h-10 min-w-[108px] rounded-xl border-[#dfe2eb] bg-[#fafbfc]"
+          className="h-10 min-w-[108px] rounded-xl border-border bg-surface"
           aria-label="Select profile"
         >
           <Avatar className="size-6">
-            <AvatarFallback className="bg-[#ececff] text-xs font-bold text-[#3d49df]">
+            <AvatarFallback className="bg-primary-soft text-xs font-bold text-primary">
               {profile?.display_name?.[0] ?? "?"}
             </AvatarFallback>
           </Avatar>
@@ -265,7 +265,7 @@ export function ProfilePicker({
             className="rounded-xl"
           />
           {error && (
-            <p className="text-sm text-[#b34438]" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {error}
             </p>
           )}
@@ -293,7 +293,7 @@ export function ProfilePicker({
             className="rounded-xl"
           />
           {error && (
-            <p className="text-sm text-[#b34438]" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {error}
             </p>
           )}
@@ -317,7 +317,7 @@ export function ProfilePicker({
           </AlertDialogHeader>
           <div className="space-y-3">
             {draftLabels.length === 0 ? (
-              <p className="text-sm text-[#6d7690]">
+              <p className="text-sm text-muted-foreground">
                 Add skills you care about so Best match can prioritize roles
                 that mention them.
               </p>
@@ -332,7 +332,7 @@ export function ProfilePicker({
                       {label}
                       <button
                         type="button"
-                        className="rounded-md p-0.5 text-[#5e6780] hover:bg-[#eff0ff] hover:text-[#3d49df] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5964ed]"
+                        className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-primary focus-ring"
                         aria-label={`Remove ${label}`}
                         onClick={() => removeSkill(label)}
                       >
@@ -370,7 +370,7 @@ export function ProfilePicker({
               </Button>
             </div>
             {error && (
-              <p className="text-sm text-[#b34438]" role="alert">
+              <p className="text-sm text-destructive" role="alert">
                 {error}
               </p>
             )}
@@ -400,7 +400,7 @@ export function ProfilePicker({
             </AlertDialogHeader>
             <div className="space-y-3">{picker}</div>
             {fallbackNotice && (
-              <p className="text-sm text-[#6d7690]">{fallbackNotice}</p>
+              <p className="text-sm text-muted-foreground">{fallbackNotice}</p>
             )}
             <AlertDialogFooter>
               <AlertDialogCancel>Close</AlertDialogCancel>

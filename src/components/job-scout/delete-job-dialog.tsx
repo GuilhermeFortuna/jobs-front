@@ -40,7 +40,7 @@ export function DeleteJobDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-[#b34438] hover:bg-[#9a3a30]"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={onConfirm}
           >
             Remove permanently
