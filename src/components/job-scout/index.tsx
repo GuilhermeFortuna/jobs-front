@@ -11,8 +11,10 @@ import {
 import { FiltersPanel } from "@/components/job-scout/filters-panel";
 import { Header } from "@/components/job-scout/header";
 import { JobCard } from "@/components/job-scout/job-card";
+import { JobCardSkeleton } from "@/components/job-scout/job-card-skeleton";
 import { JobDetail } from "@/components/job-scout/job-detail";
 import { NoticeToaster } from "@/components/job-scout/notice-toaster";
+import { ResultsPagination } from "@/components/job-scout/results-pagination";
 import { SearchStatus } from "@/components/job-scout/search-status";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,7 +40,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +49,8 @@ import { useJobScout } from "@/hooks/use-job-scout";
 import type { SearchFilters } from "@/lib/api";
 import { DETAIL_PANE_BREAKPOINT_PX } from "@/lib/breakpoints";
 import { countActiveFilters, jobKey } from "@/lib/job-utils";
+
+const SKELETON_COUNT = 5;
 
 export function JobScout() {
   const scout = useJobScout();
@@ -68,6 +71,15 @@ export function JobScout() {
   );
 
   const selectedKey = scout.selected ? jobKey(scout.selected) : null;
+
+  const totalPages =
+    scout.view === "discover" && scout.total != null && scout.total > 0
+      ? Math.max(1, Math.ceil(scout.total / scout.pageSize))
+      : 1;
+  const showPagination =
+    scout.view === "discover" &&
+    scout.total != null &&
+    scout.total > scout.pageSize;
 
   return (
     <main className="flex h-dvh min-h-[680px] flex-col overflow-hidden bg-background text-foreground">
@@ -265,9 +277,13 @@ export function JobScout() {
                   ))}
                 </div>
               ) : scout.loading ? (
-                <div className="mx-auto flex max-w-sm flex-col items-center gap-3 px-6 py-20">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-48" />
+                <div
+                  className="flex flex-col gap-3"
+                  data-testid="results-skeletons"
+                >
+                  {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+                    <JobCardSkeleton key={index} />
+                  ))}
                   <span className="sr-only">Loading roles…</span>
                 </div>
               ) : (
@@ -278,20 +294,43 @@ export function JobScout() {
                   onRetry={() => void scout.retryConnection()}
                 />
               )}
+
+              {/*
+                The results footer is desktop-only, so mobile gets its own
+                mount at the end of the list — otherwise pages beyond the
+                first are unreachable below 640px.
+              */}
+              {showPagination && (
+                <ResultsPagination
+                  page={scout.page}
+                  totalPages={totalPages}
+                  onPageChange={(next) => void scout.setPage(next)}
+                  className="mt-4 justify-center sm:hidden"
+                />
+              )}
             </div>
           </ScrollArea>
 
-          <footer className="relative hidden h-12 items-center bg-card px-5 text-sm text-muted-foreground sm:flex">
+          <footer className="relative hidden min-h-12 flex-col justify-center gap-2 bg-card px-5 py-2 text-sm text-muted-foreground sm:flex">
             <Separator className="absolute inset-x-0 top-0" />
-            {scout.view === "discover" && scout.total === null
-              ? `${scout.jobs.length} roles loaded so far`
-              : scout.view === "discover"
-                ? `${(scout.total ?? scout.jobs.length).toLocaleString()} matching roles`
-                : `${scout.jobs.length} ${scout.view} roles`}
-            {scout.searchId && scout.view === "discover" && (
-              <span className="ml-auto font-mono text-[10px]">
-                {scout.searchId.slice(0, 8)}
-              </span>
+            <div className="flex items-center">
+              {scout.view === "discover" && scout.total === null
+                ? `${scout.jobs.length} roles loaded so far`
+                : scout.view === "discover"
+                  ? `${(scout.total ?? scout.jobs.length).toLocaleString()} matching roles`
+                  : `${scout.jobs.length} ${scout.view} roles`}
+              {scout.searchId && scout.view === "discover" && (
+                <span className="ml-auto font-mono text-[10px]">
+                  {scout.searchId.slice(0, 8)}
+                </span>
+              )}
+            </div>
+            {showPagination && (
+              <ResultsPagination
+                page={scout.page}
+                totalPages={totalPages}
+                onPageChange={(next) => void scout.setPage(next)}
+              />
             )}
           </footer>
         </Card>

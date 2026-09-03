@@ -2,6 +2,7 @@
 
 import { Bookmark, BookmarkCheck, Globe2 } from "lucide-react";
 
+import { CompanyLogo } from "@/components/job-scout/company-logo";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -27,6 +28,14 @@ import {
 import { formatProviderName } from "@/lib/providers";
 import { cn } from "@/lib/utils";
 
+/**
+ * Geometry shared by the real card and its loading skeleton. Both render it on
+ * the same `Card` primitive so the skeleton cannot drift out of alignment and
+ * reintroduce the reflow this replaced.
+ */
+export const JOB_CARD_SHELL_CLASS =
+  "rounded-[14px] border bg-card py-4 shadow-card";
+
 type JobCardProps = {
   job: DisplayJob;
   selected: boolean;
@@ -44,7 +53,8 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
       role="article"
       size="sm"
       className={cn(
-        "group relative cursor-pointer rounded-[14px] border bg-card py-4 shadow-card ring-0 transition hover:-translate-y-0.5 hover:border-primary-border hover:shadow-card-hover motion-reduce:transform-none focus-ring",
+        JOB_CARD_SHELL_CLASS,
+        "group relative cursor-pointer ring-0 transition hover:-translate-y-0.5 hover:border-primary-border hover:shadow-card-hover motion-reduce:transform-none focus-ring",
         selected && "border-ring bg-selected ring-1 ring-ring",
       )}
       onClick={onSelect}
@@ -60,9 +70,11 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
       }}
     >
       <CardHeader className="flex flex-row items-start gap-3.5 space-y-0">
-        <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-foreground text-lg font-bold text-background">
-          {job.company.slice(0, 1)}
-        </div>
+        <CompanyLogo
+          company={job.company}
+          logoUrl={job.company_logo_url}
+          size="sm"
+        />
         <div className="min-w-0 flex-1">
           <CardDescription className="text-sm text-muted-foreground">
             {job.company}

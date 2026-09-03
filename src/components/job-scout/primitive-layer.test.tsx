@@ -91,4 +91,27 @@ describe("EmptyState module", () => {
       screen.getByRole("button", { name: "Discover roles" }),
     ).toBeInTheDocument();
   });
+
+  it("uses a static fallback under prefers-reduced-motion", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      (query: string) =>
+        ({
+          matches: query === "(prefers-reduced-motion: reduce)",
+          media: query,
+          onchange: null,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) satisfies MediaQueryList,
+    );
+    render(
+      <EmptyState view="discover" statusKind="empty" onDiscover={vi.fn()} />,
+    );
+    expect(await screen.findByTestId("empty-state-static")).toBeInTheDocument();
+    expect(screen.getByText("No matching roles")).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
 });

@@ -4,6 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { FiltersPanel } from "@/components/job-scout/filters-panel";
 import { DEFAULT_FILTERS } from "@/hooks/use-job-scout";
 import type { ProviderDescriptor, SearchFilters } from "@/lib/api";
+import {
+  filtersFromSearchParams,
+  searchParamsFromFilters,
+} from "@/lib/search-params";
 
 function renderPanel(
   providers?: ProviderDescriptor[],
@@ -125,5 +129,125 @@ describe("FiltersPanel location", () => {
     expect(
       screen.getByText(/Filters where the role is based/),
     ).toBeInTheDocument();
+  });
+});
+
+describe("FiltersPanel actions and upgraded controls", () => {
+  it("resets filters to the defaults", () => {
+    const setFilters = vi.fn();
+    renderPanel(undefined, {
+      filters: {
+        ...DEFAULT_FILTERS,
+        query: "designer",
+        employment_types: ["Full Time"],
+        minimum_salary: 100000,
+      },
+      setFilters,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect(setFilters).toHaveBeenCalledWith(DEFAULT_FILTERS);
+  });
+
+  it("searches and saves defaults without inventing a debounce timer", () => {
+    const onSearch = vi.fn();
+    const onSaveDefaults = vi.fn();
+    render(
+      <FiltersPanel
+        filters={DEFAULT_FILTERS}
+        setFilters={vi.fn()}
+        onSearch={onSearch}
+        onSaveDefaults={onSaveDefaults}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Search these roles/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Save as default/i }));
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSaveDefaults).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles employment type through the toggle group with unchanged values", () => {
+    const setFilters = vi.fn();
+    renderPanel(undefined, { setFilters });
+
+    fireEvent.click(screen.getByRole("button", { name: "Full Time" }));
+    expect(setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ employment_types: ["Full Time"] }),
+    );
+  });
+
+  it("maps the salary slider to the same discrete values as the old select", () => {
+    renderPanel(undefined, {
+      filters: { ...DEFAULT_FILTERS, minimum_salary: 150000 },
+    });
+
+    expect(screen.getByText("$150,000")).toBeInTheDocument();
+    expect(screen.getByLabelText("Minimum salary")).toBeInTheDocument();
+  });
+});
+
+describe("FiltersPanel URL round-trip for controls that changed type", () => {
+  /**
+   * JE-020 moved employment type and seniority from checkboxes to toggle
+   * groups and minimum salary from a select to a slider. AC2 requires the
+   * serialized values to be unchanged, so drive each control and push what it
+   * produces through the real serializer and parser.
+   */
+  function roundTrip(filters: SearchFilters): SearchFilters {
+    return filtersFromSearchParams(searchParamsFromFilters(filters));
+  }
+
+  it("round-trips employment types set through the toggle group", () => {
+    const setFilters = vi.fn();
+    renderPanel(undefined, { setFilters });
+
+    fireEvent.click(screen.getByRole("button", { name: "Full Time" }));
+    const next = setFilters.mock.calls.at(-1)![0] as SearchFilters;
+
+    expect(next.employment_types).toEqual(["Full Time"]);
+    expect(roundTrip(next)).toEqual(next);
+  });
+
+  it("round-trips seniority set through the toggle group", () => {
+    const setFilters = vi.fn();
+    renderPanel(undefined, { setFilters });
+
+    fireEvent.click(screen.getByRole("button", { name: "Executive" }));
+    const next = setFilters.mock.calls.at(-1)![0] as SearchFilters;
+
+    expect(next.seniority).toEqual(["Executive"]);
+    expect(roundTrip(next)).toEqual(next);
+  });
+
+  it("round-trips every salary stop the slider can produce", () => {
+    for (const salary of [null, 100000, 150000, 200000]) {
+      const filters: SearchFilters = {
+        ...DEFAULT_FILTERS,
+        minimum_salary: salary,
+      };
+      expect(roundTrip(filters).minimum_salary).toBe(salary);
+    }
+  });
+
+  it("serializes salary identically to the select it replaced", () => {
+    const filters: SearchFilters = {
+      ...DEFAULT_FILTERS,
+      minimum_salary: 150000,
+    };
+    expect(searchParamsFromFilters(filters).get("salary")).toBe("150000");
+  });
+
+  it("restores a slider value from the URL without mutating it", () => {
+    const params = new URLSearchParams(
+      "employment=Full+Time&seniority=Senior&salary=200000",
+    );
+    const restored = filtersFromSearchParams(params);
+    renderPanel(undefined, { filters: restored });
+
+    expect(screen.getByText("$200,000")).toBeInTheDocument();
+    expect(roundTrip(restored)).toEqual(restored);
   });
 });

@@ -38,6 +38,13 @@ export type { StatusKind };
 
 const PROFILE_STORAGE_KEY = "job-scout-profile";
 const POLL_INTERVAL_MS = 900;
+/**
+ * Matches the backend's own default (`/searches/{id}` page_size default 25,
+ * max 100). The previous value of 100 sat at the API ceiling, which meant
+ * pagination only ever appeared past 100 results and the list stayed
+ * effectively unbounded for almost every search.
+ */
+export const SEARCH_PAGE_SIZE = 25;
 
 const FALLBACK_FILTERS: SearchFilters = { ...EMPTY_FILTERS };
 
@@ -67,6 +74,7 @@ export function useJobScout() {
   const [jobs, setJobs] = useState<DisplayJob[]>([]);
   const [selected, setSelected] = useState<DisplayJob | null>(null);
   const [searchId, setSearchId] = useState<string | null>(null);
+  const [page, setPageState] = useState(1);
   const [progress, setProgress] = useState(0);
   const [checked, setChecked] = useState(0);
   const [total, setTotal] = useState<number | null>(null);
@@ -89,6 +97,7 @@ export function useJobScout() {
   const pollGeneration = useRef(0);
   const initGeneration = useRef(0);
   const selectedRef = useRef<DisplayJob | null>(null);
+  const pageRef = useRef(1);
   const [providers, setProviders] = useState<ProviderDescriptor[]>([]);
   const previousProfileId = useRef<string | null>(null);
   const lastAnnouncementKey = useRef("");
@@ -97,53 +106,94 @@ export function useJobScout() {
     selectedRef.current = selected;
   }, [selected]);
 
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
   const cancelPolling = useCallback(() => {
     pollGeneration.current += 1;
   }, []);
 
-  const applySearchPage = useCallback((page: SearchPage, keepStale = false) => {
-    setProgress(page.progress);
-    setChecked(page.checked_count);
-    setWarnings(page.warnings);
-    setProviderStatuses(page.providers ?? []);
-    setNotice(buildNotice(page));
-    const nextKey = announcementKey(page);
-    if (nextKey !== lastAnnouncementKey.current) {
-      lastAnnouncementKey.current = nextKey;
-      setLiveAnnouncement(buildNotice(page));
+  /** Shared expired/offline branch for every search fetch failure. */
+  const handleSearchFailure = useCallback((error: unknown) => {
+    setLoading(false);
+    if (error instanceof ApiError && error.isExpired) {
+      setSearchExpired(true);
+      setStatusKind("expired");
+      setNotice("Search expired · run a new search to continue");
+      return;
     }
-    setSearchExpired(false);
-    setStatusKind(statusKindFromPage(page, false, false));
-
-    setJobs((current) => {
-      const nextItems = page.items;
-      if (keepStale && current.length && !nextItems.length) {
-        // Stale results stay on screen, and stay saveable, until the
-        // replacement search has something useful to show.
-        return current;
-      }
-      const next = nextItems as DisplayJob[];
-      setSearchId(page.search_id);
-      setTotal(page.total);
-      setSelected((prev) => preserveSelection(next, prev));
-      return next;
-    });
+    setApiOnline(false);
+    setStatusKind("offline");
+    setNotice(formatApiError(error));
   }, []);
+
+  const applySearchPage = useCallback(
+    (
+      page: SearchPage,
+      options?: { keepStale?: boolean; keepSelection?: boolean },
+    ) => {
+      const keepStale = options?.keepStale ?? false;
+      const keepSelection = options?.keepSelection ?? false;
+      setProgress(page.progress);
+      setChecked(page.checked_count);
+      setWarnings(page.warnings);
+      setProviderStatuses(page.providers ?? []);
+      setNotice(buildNotice(page));
+      const nextKey = announcementKey(page);
+      if (nextKey !== lastAnnouncementKey.current) {
+        lastAnnouncementKey.current = nextKey;
+        setLiveAnnouncement(buildNotice(page));
+      }
+      setSearchExpired(false);
+      setStatusKind(statusKindFromPage(page, false, false));
+
+      setJobs((current) => {
+        const nextItems = page.items;
+        if (keepStale && current.length && !nextItems.length) {
+          // Stale results stay on screen, and stay saveable, until the
+          // replacement search has something useful to show.
+          return current;
+        }
+        const next = nextItems as DisplayJob[];
+        setSearchId(page.search_id);
+        setTotal(page.total);
+        setSelected((prev) => {
+          const preserved = preserveSelection(next, prev);
+          // Paging is navigation, not a new result set: the open detail pane
+          // must not silently swap to whichever role happens to lead the new
+          // page just because the selection lives on the page we left.
+          if (keepSelection && prev && findJobIndex(next, prev) === -1) {
+            return prev;
+          }
+          return preserved;
+        });
+        return next;
+      });
+    },
+    [],
+  );
 
   const pollSearch = useCallback(
     async (
       id: string,
       generation: number,
       profileId: string,
-      options?: { keepStale?: boolean },
+      options?: { keepStale?: boolean; keepSelection?: boolean },
     ) => {
       let complete = false;
       while (!complete) {
         if (generation !== pollGeneration.current) return;
         try {
-          const result = await api.search(id, profileId);
+          const result = await api.search(id, profileId, {
+            page: pageRef.current,
+            page_size: SEARCH_PAGE_SIZE,
+          });
           if (generation !== pollGeneration.current) return;
-          applySearchPage(result, options?.keepStale);
+          applySearchPage(result, {
+            keepStale: options?.keepStale,
+            keepSelection: options?.keepSelection,
+          });
           complete = result.is_complete;
           if (!complete) {
             await sleep(POLL_INTERVAL_MS);
@@ -151,23 +201,13 @@ export function useJobScout() {
           }
         } catch (error) {
           if (generation !== pollGeneration.current) return;
-          if (error instanceof ApiError && error.isExpired) {
-            setSearchExpired(true);
-            setStatusKind("expired");
-            setNotice("Search expired · run a new search to continue");
-            setLoading(false);
-            return;
-          }
-          setApiOnline(false);
-          setStatusKind("offline");
-          setNotice(formatApiError(error));
-          setLoading(false);
+          handleSearchFailure(error);
           return;
         }
       }
       setLoading(false);
     },
-    [applySearchPage],
+    [applySearchPage, handleSearchFailure],
   );
 
   const runSearch = useCallback(
@@ -180,6 +220,8 @@ export function useJobScout() {
       const activeFilters = nextFilters ?? filters;
       cancelPolling();
       const generation = pollGeneration.current;
+      setPageState(1);
+      pageRef.current = 1;
       setLoading(true);
       setSearchExpired(false);
       setApiOnline(true);
@@ -219,6 +261,8 @@ export function useJobScout() {
     if (!profile) return;
     cancelPolling();
     const generation = pollGeneration.current;
+    setPageState(1);
+    pageRef.current = 1;
     setLoading(true);
     setSearchExpired(false);
     setApiOnline(true);
@@ -229,7 +273,7 @@ export function useJobScout() {
     try {
       const result = await api.refreshDefaultSearch(profile.id);
       if (generation !== pollGeneration.current) return;
-      applySearchPage(result, true);
+      applySearchPage(result, { keepStale: true });
       if (!result.is_complete) {
         await pollSearch(result.search_id, generation, profile.id, {
           keepStale: true,
@@ -251,6 +295,51 @@ export function useJobScout() {
       setNotice(formatApiError(error));
     }
   }, [applySearchPage, cancelPolling, pollSearch, profile]);
+
+  const setPage = useCallback(
+    async (nextPage: number) => {
+      if (
+        !profile ||
+        !searchId ||
+        nextPage < 1 ||
+        nextPage === pageRef.current
+      ) {
+        return;
+      }
+      cancelPolling();
+      const generation = pollGeneration.current;
+      setPageState(nextPage);
+      pageRef.current = nextPage;
+      setLoading(true);
+      setApiOnline(true);
+      try {
+        const result = await api.search(searchId, profile.id, {
+          page: nextPage,
+          page_size: SEARCH_PAGE_SIZE,
+        });
+        if (generation !== pollGeneration.current) return;
+        applySearchPage(result, { keepSelection: true });
+        if (!result.is_complete) {
+          await pollSearch(result.search_id, generation, profile.id, {
+            keepSelection: true,
+          });
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        if (generation !== pollGeneration.current) return;
+        handleSearchFailure(error);
+      }
+    },
+    [
+      applySearchPage,
+      cancelPolling,
+      handleSearchFailure,
+      pollSearch,
+      profile,
+      searchId,
+    ],
+  );
 
   const loadLibrary = useCallback(
     async (state: LibraryState) => {
@@ -516,6 +605,8 @@ export function useJobScout() {
 
     cancelPolling();
     const pollGen = pollGeneration.current;
+    setPageState(1);
+    pageRef.current = 1;
     setLoading(true);
     setSearchExpired(false);
     setStatusKind("loading");
@@ -546,7 +637,7 @@ export function useJobScout() {
     ) {
       return;
     }
-    applySearchPage(result, true);
+    applySearchPage(result, { keepStale: true });
     if (!result.is_complete) {
       await pollSearch(result.search_id, pollGen, current.id, {
         keepStale: true,
@@ -649,6 +740,8 @@ export function useJobScout() {
     jobs,
     selected,
     searchId,
+    page,
+    pageSize: SEARCH_PAGE_SIZE,
     progress,
     checked,
     total,
@@ -666,6 +759,7 @@ export function useJobScout() {
     setSelected,
     setFilters,
     setProfile,
+    setPage,
     changeView,
     runSearch,
     refreshDefaultSearch,

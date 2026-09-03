@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { JobCard } from "@/components/job-scout/job-card";
+import { JobCard, JOB_CARD_SHELL_CLASS } from "@/components/job-scout/job-card";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { JobResult } from "@/lib/api";
 
@@ -99,5 +99,39 @@ describe("JobCard", () => {
       "aria-label",
       "Save Staff Engineer at Linear",
     );
+  });
+
+  it("renders a company logo when company_logo_url is present", () => {
+    renderCard({
+      job: {
+        ...job,
+        company_logo_url: "https://cdn.example.com/linear.png",
+      },
+    });
+    expect(screen.getByTestId("company-logo")).toBeInTheDocument();
+  });
+
+  it("falls back to the letter tile when company_logo_url is absent", () => {
+    renderCard();
+    expect(screen.getByTestId("company-logo-fallback")).toHaveTextContent("L");
+  });
+});
+
+describe("JobCard skeleton parity", () => {
+  /**
+   * The skeleton exists to stop the list reflowing when results arrive, which
+   * only holds while it keeps the card's geometry. jsdom has no layout, so
+   * assert the thing that would actually drift: both must render the same
+   * shell class on the same primitive.
+   */
+  it("shares its shell geometry with the real card", () => {
+    renderCard();
+    const card = screen.getByTestId("job-card");
+
+    for (const token of JOB_CARD_SHELL_CLASS.split(" ")) {
+      expect(card).toHaveClass(token);
+    }
+    expect(card).toHaveAttribute("data-slot", "card");
+    expect(card).toHaveAttribute("data-size", "sm");
   });
 });
