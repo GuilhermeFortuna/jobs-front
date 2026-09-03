@@ -55,7 +55,11 @@ describe("JobDetail", () => {
         onRemove={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText("Matched skills").textContent).toBe("RustGo");
+    const chips = screen.getByLabelText("Matched skills");
+    expect(Array.from(chips.children).map((el) => el.textContent)).toEqual([
+      "Rust",
+      "Go",
+    ]);
     expect(container.textContent).not.toMatch(/19\.2/);
 
     rerender(

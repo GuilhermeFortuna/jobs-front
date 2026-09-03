@@ -74,7 +74,7 @@ export function SearchStatus({
   );
 
   return (
-    <div className="border-b bg-card px-5 py-5">
+    <div className="border-b bg-card px-5 py-5" data-testid="search-status">
       <div className="sr-only" aria-live="polite">
         {liveAnnouncement}
       </div>
@@ -187,7 +187,9 @@ export function SearchStatus({
         ) : (
           <Sparkles className="size-4 text-primary" aria-hidden="true" />
         )}
-        <span className="min-w-0 break-words">{notice}</span>
+        <span className="min-w-0 break-words" data-testid="search-notice">
+          {notice}
+        </span>
         {checked > 0 && view === "discover" && (
           <span className="ml-auto shrink-0 tabular-nums">
             {checked.toLocaleString()} checked

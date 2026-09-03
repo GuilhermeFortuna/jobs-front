@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { fixtures } from "./fixtures";
+import { DETAIL_PANE_BREAKPOINT_PX } from "../src/lib/breakpoints";
 
 type SearchFixture = typeof fixtures.searchComplete;
 type SearchRefreshFixture = typeof fixtures.searchRefreshComplete;
@@ -115,13 +116,17 @@ test("discover search and save journey", async ({ page }) => {
   ).toBeVisible({
     timeout: 15_000,
   });
+  await expect(page.getByTestId("search-notice")).toContainText(
+    /Search complete/,
+    {
+      timeout: 15_000,
+    },
+  );
   await expect(
-    page.locator("span.min-w-0.break-words", { hasText: /Search complete/ }),
-  ).toBeVisible({
-    timeout: 15_000,
-  });
-  await expect(
-    page.getByRole("article").getByText(/\+1 sources/),
+    page
+      .getByTestId("job-card")
+      .filter({ hasText: "+1 sources" })
+      .getByText(/\+1 sources/),
   ).toBeVisible();
   await page
     .getByRole("button", { name: /Save Staff Engineer/i })
@@ -141,17 +146,13 @@ test("library state move and delete confirmation", async ({
   ).toBeVisible({
     timeout: 15_000,
   });
-  if (testInfo.project.name === "mobile") {
-    await page
-      .getByRole("navigation", { name: "Mobile navigation" })
-      .getByRole("button", { name: "saved" })
-      .click();
-  } else {
-    await page
-      .getByRole("navigation", { name: "Main navigation" })
-      .getByRole("button", { name: "saved" })
-      .click();
-  }
+  // Exactly one <nav> is ever in the accessibility tree at a given viewport
+  // (the other is display:none), so this resolves unambiguously today and
+  // continues to if the redesign consolidates to a single responsive nav.
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "saved" })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Saved roles", exact: true }),
   ).toBeVisible();
@@ -165,27 +166,23 @@ test("library state move and delete confirmation", async ({
     await expect(page.getByRole("dialog", { name: "Job details" })).toHaveCount(
       0,
     );
-    await page
-      .getByRole("navigation", { name: "Mobile navigation" })
-      .getByRole("button", { name: "applied" })
-      .click();
-  } else {
-    await page
-      .getByRole("navigation", { name: "Main navigation" })
-      .getByRole("button", { name: "applied" })
-      .click();
   }
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "applied" })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Applications", exact: true }),
   ).toBeVisible();
+  // Scoped to the job-card container so it can't match the desktop detail
+  // pane's own "Staff Engineer" heading, without pinning a literal level.
+  const cardTitle = page
+    .getByTestId("job-card")
+    .getByRole("heading", { name: "Staff Engineer" });
   if (testInfo.project.name === "mobile") {
-    await page
-      .getByRole("heading", { level: 3, name: "Staff Engineer" })
-      .click();
+    await cardTitle.click();
   } else {
-    await expect(
-      page.getByRole("heading", { level: 3, name: "Staff Engineer" }),
-    ).toBeVisible();
+    await expect(cardTitle).toBeVisible();
   }
   await page
     .getByRole("button", { name: "Remove permanently" })
@@ -209,9 +206,19 @@ test("mobile opens filter and detail sheets", async ({ page }, testInfo) => {
     page.getByRole("dialog", { name: "Search filters" }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByRole("heading", { level: 3, name: "Staff Engineer" }).click();
+  // Card heading opens the sheet; the detail heading is scoped to the
+  // job-detail container (not just the dialog) because the sheet also
+  // carries a visually-hidden dialog title with the same accessible name,
+  // and neither assertion pins a literal heading level.
+  await page
+    .getByTestId("job-card")
+    .getByRole("heading", { name: "Staff Engineer" })
+    .click();
   await expect(
-    page.getByRole("heading", { level: 2, name: "Staff Engineer" }).last(),
+    page
+      .getByRole("dialog")
+      .getByTestId("job-detail")
+      .getByRole("heading", { name: "Staff Engineer" }),
   ).toBeVisible();
 });
 
@@ -241,13 +248,16 @@ test("degraded search reads as partial and names the failed provider", async ({
     } as SearchRefreshFixture,
   });
   await page.goto("/");
+  const searchStatus = page.getByTestId("search-status");
   await expect(
-    page.getByRole("status").filter({ hasText: /Search partially complete/ }),
+    searchStatus
+      .getByRole("status")
+      .filter({ hasText: /Search partially complete/ }),
   ).toBeVisible({
     timeout: 15_000,
   });
   await expect(
-    page.getByRole("status").filter({ hasText: /Jobicy unavailable/ }),
+    searchStatus.getByRole("status").filter({ hasText: /Jobicy unavailable/ }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Staff Engineer" }).first(),
@@ -263,15 +273,18 @@ test("consolidated detail exposes every source and saves once", async ({
   ).toBeVisible({
     timeout: 15_000,
   });
-  if (page.viewportSize()?.width && page.viewportSize()!.width < 1280) {
+  const isMobileLayout =
+    Boolean(page.viewportSize()?.width) &&
+    page.viewportSize()!.width < DETAIL_PANE_BREAKPOINT_PX;
+  if (isMobileLayout) {
     await page
-      .getByRole("heading", { level: 3, name: "Staff Engineer" })
+      .getByTestId("job-card")
+      .getByRole("heading", { name: "Staff Engineer" })
       .click();
   }
-  const detail =
-    page.viewportSize()?.width && page.viewportSize()!.width < 1280
-      ? page.getByRole("dialog")
-      : page.getByRole("main");
+  const detail = isMobileLayout
+    ? page.getByRole("dialog")
+    : page.getByRole("main");
   await expect(detail.getByText("Primary source")).toBeVisible();
   await expect(
     detail.getByRole("link", { name: "View Himalayas listing" }),
@@ -279,6 +292,9 @@ test("consolidated detail exposes every source and saves once", async ({
   await expect(
     detail.getByRole("link", { name: "View Remote OK listing" }),
   ).toBeVisible();
+  // The exact "Save" match (vs. "Saved"/"Move to saved") is intentional: it
+  // protects JobDetail's three-way label logic, not just a locator
+  // convenience. Do not loosen it.
   await detail.getByRole("button", { name: /^Save$/ }).click();
   await expect(page.getByText("Saved to your library")).toBeVisible({
     timeout: 10_000,

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { SearchStatus } from "@/components/job-scout/search-status";
@@ -40,7 +40,7 @@ describe("SearchStatus", () => {
   });
 
   it("shows a total-failure alert separately from partial completion", () => {
-    render(
+    const { container } = render(
       <SearchStatus
         view="discover"
         loading={false}
@@ -55,6 +55,38 @@ describe("SearchStatus", () => {
         searchExpired={false}
       />,
     );
-    expect(screen.getByRole("alert")).toHaveTextContent("All providers failed");
+    expect(within(container).getByRole("alert")).toHaveTextContent(
+      "All providers failed",
+    );
+  });
+
+  it("scopes the failure alert query even when another alert (e.g. a toast) is on the page", () => {
+    const { container } = render(
+      <SearchStatus
+        view="discover"
+        loading={false}
+        notice="All providers failed"
+        liveAnnouncement="All providers failed"
+        checked={0}
+        progress={1}
+        total={0}
+        warnings={["All providers failed"]}
+        providerStatuses={[]}
+        statusKind="failed"
+        searchExpired={false}
+      />,
+    );
+    const toast = document.createElement("div");
+    toast.setAttribute("role", "alert");
+    toast.textContent = "Saved to your library";
+    document.body.appendChild(toast);
+
+    try {
+      expect(within(container).getByRole("alert")).toHaveTextContent(
+        "All providers failed",
+      );
+    } finally {
+      toast.remove();
+    }
   });
 });

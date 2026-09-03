@@ -81,7 +81,10 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
   const alternates = job.alternate_sources ?? [];
 
   return (
-    <div className="mx-auto flex min-h-full max-w-[760px] flex-col px-5 pb-24 pt-7 sm:px-8 sm:pb-8 lg:px-10">
+    <div
+      className="mx-auto flex min-h-full max-w-[760px] flex-col px-5 pb-24 pt-7 sm:px-8 sm:pb-8 lg:px-10"
+      data-testid="job-detail"
+    >
       <div className="flex items-start gap-4">
         <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-foreground text-xl font-bold text-background">
           {job.company.slice(0, 1)}

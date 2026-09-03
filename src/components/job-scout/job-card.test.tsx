@@ -47,7 +47,10 @@ describe("JobCard", () => {
       />,
     );
     const chips = screen.getByLabelText("Matched skills");
-    expect(chips.textContent).toBe("PythonPostgreSQL");
+    expect(Array.from(chips.children).map((el) => el.textContent)).toEqual([
+      "Python",
+      "PostgreSQL",
+    ]);
 
     rerender(
       <JobCard

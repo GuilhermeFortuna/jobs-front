@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -109,11 +110,13 @@ describe("ProfilePicker skills editor", () => {
       skills: [{ label: "Python", token: "python" }],
     });
 
+    const dialog = screen.getByRole("alertdialog");
+
     fireEvent.change(screen.getByLabelText("New skill"), {
       target: { value: "python" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
       /already on this profile/i,
     );
 
@@ -121,9 +124,32 @@ describe("ProfilePicker skills editor", () => {
       target: { value: "x".repeat(61) },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
       /at most 60 characters/i,
     );
+  });
+
+  it("scopes validation to the skills dialog when another alert (e.g. a toast) is on the page", () => {
+    renderPicker({
+      skills: [{ label: "Python", token: "python" }],
+    });
+    const dialog = screen.getByRole("alertdialog");
+    const toast = document.createElement("div");
+    toast.setAttribute("role", "alert");
+    toast.textContent = "Saved to your library";
+    document.body.appendChild(toast);
+
+    try {
+      fireEvent.change(screen.getByLabelText("New skill"), {
+        target: { value: "python" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+      expect(within(dialog).getByRole("alert")).toHaveTextContent(
+        /already on this profile/i,
+      );
+    } finally {
+      toast.remove();
+    }
   });
 
   it("surfaces a server 422 as readable text", async () => {
@@ -142,9 +168,9 @@ describe("ProfilePicker skills editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save skills" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        /Duplicate skill token/i,
-      );
+      expect(
+        within(screen.getByRole("alertdialog")).getByRole("alert"),
+      ).toHaveTextContent(/Duplicate skill token/i);
     });
   });
 });

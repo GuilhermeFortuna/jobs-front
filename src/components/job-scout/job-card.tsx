@@ -38,6 +38,7 @@ export function JobCard({ job, selected, onSelect, onSave }: JobCardProps) {
       )}
       onClick={onSelect}
       tabIndex={0}
+      data-testid="job-card"
       data-selected={selected ? "true" : "false"}
       data-job-key={jobKey(job)}
       onKeyDown={(event) => {

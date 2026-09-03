@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sheet";
 import { useJobScout } from "@/hooks/use-job-scout";
 import type { SearchFilters } from "@/lib/api";
+import { DETAIL_PANE_BREAKPOINT_PX } from "@/lib/breakpoints";
 import { countActiveFilters, jobKey } from "@/lib/job-utils";
 
 export function JobScout() {
@@ -220,7 +221,8 @@ export function JobScout() {
                     selected={jobKey(job) === selectedKey}
                     onSelect={() => {
                       scout.setSelected(job);
-                      if (window.innerWidth < 1280) setDetailOpen(true);
+                      if (window.innerWidth < DETAIL_PANE_BREAKPOINT_PX)
+                        setDetailOpen(true);
                     }}
                     onSave={() => {
                       scout.setSelected(job);

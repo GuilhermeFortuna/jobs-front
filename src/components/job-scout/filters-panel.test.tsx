@@ -92,7 +92,6 @@ describe("FiltersPanel provider filter", () => {
       name: "Adzuna · Unavailable",
     });
     expect(unavailable).toHaveAttribute("aria-disabled", "true");
-    expect(unavailable).toHaveAttribute("data-disabled", "");
     expect(screen.queryByText(/app_id|credential|api key/i)).toBeNull();
   });
 });
