@@ -66,9 +66,8 @@ async function installApiMock(page: Page) {
 }
 
 async function chooseTheme(page: Page, label: "Light" | "Dark" | "System") {
-  const themeButton = page
-    .getByRole("button", { name: "Theme" })
-    .locator("visible=true");
+  const themeButton = page.getByRole("button", { name: /Theme/i });
+  await expect(themeButton).toHaveCount(1);
   await themeButton.click();
   const option = page.getByRole("menuitem", { name: label });
   await expect(option).toBeVisible();

@@ -76,6 +76,30 @@ describe("ProfilePicker skills editor", () => {
     expect(screen.getByText(/re-rank the next search/i)).toBeInTheDocument();
   });
 
+  it("renders the profile select once when the mobile sheet is open", () => {
+    render(
+      <ProfilePicker
+        profiles={[profile]}
+        profile={profile}
+        onSelect={vi.fn()}
+        onCreate={vi.fn()}
+        onRename={vi.fn()}
+        onUpdateSkills={vi.fn()}
+        mobileOpen
+        onMobileOpenChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getAllByRole("combobox", { name: "Select profile", hidden: true }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("alertdialog", { name: "Profile" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Create profile" }),
+    ).toBeInTheDocument();
+  });
+
   it("adds and removes skills, then saves labels only", async () => {
     const onUpdateSkills = vi.fn(async (labels: string[]) => ({
       ...profile,

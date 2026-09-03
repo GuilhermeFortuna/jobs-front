@@ -92,7 +92,7 @@ export function JobScout() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <Card className="hidden w-[272px] shrink-0 rounded-none border-0 border-r bg-card py-0 ring-0 lg:flex lg:flex-col">
+        <Card className="hidden w-[272px] shrink-0 rounded-none border-0 border-r bg-card py-0 shadow-none ring-0 lg:flex lg:flex-col">
           <ScrollArea className="h-full">
             <div className="px-5 py-6">
               <FiltersPanel
@@ -107,7 +107,7 @@ export function JobScout() {
           </ScrollArea>
         </Card>
 
-        <Card className="flex min-w-0 flex-1 flex-col rounded-none border-0 border-r bg-surface py-0 ring-0 xl:max-w-[540px]">
+        <Card className="flex min-w-0 flex-1 flex-col rounded-none border-0 border-r bg-surface py-0 shadow-card ring-0 xl:max-w-[540px]">
           <div className="border-b bg-card px-4 py-4 lg:hidden">
             <div className="flex gap-2">
               <InputGroup className="h-11 flex-1 rounded-xl">
@@ -244,7 +244,7 @@ export function JobScout() {
           />
 
           <ScrollArea className="min-h-0 flex-1">
-            <div className="p-3 pb-20 sm:p-4 sm:pb-4">
+            <div className="p-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:p-4 sm:pb-4">
               {scout.jobs.length ? (
                 <div className="flex flex-col gap-3">
                   {scout.jobs.map((job) => (
@@ -296,7 +296,7 @@ export function JobScout() {
           </footer>
         </Card>
 
-        <Card className="hidden min-w-0 flex-1 rounded-none border-0 bg-card py-0 ring-0 xl:flex xl:flex-col">
+        <Card className="hidden min-w-0 flex-1 rounded-none border-0 bg-card py-0 shadow-none ring-0 xl:flex xl:flex-col">
           <ScrollArea className="h-full">
             {scout.selected ? (
               <JobDetail

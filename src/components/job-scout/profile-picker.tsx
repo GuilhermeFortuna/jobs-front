@@ -421,10 +421,80 @@ export function ProfilePicker({
                 Switch, create, rename, or edit skills for your local profile.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="flex flex-col gap-3">{picker}</div>
-            {fallbackNotice && (
-              <p className="text-sm text-muted-foreground">{fallbackNotice}</p>
-            )}
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-medium">
+                {profile?.display_name ?? "No profile selected"}
+              </p>
+              <ul className="flex flex-col gap-1" aria-label="Switch profile">
+                {profiles.map((item) => (
+                  <li key={item.id}>
+                    <Button
+                      type="button"
+                      variant={item.id === profile?.id ? "secondary" : "ghost"}
+                      className="w-full justify-start rounded-xl"
+                      aria-current={
+                        item.id === profile?.id ? "true" : undefined
+                      }
+                      onClick={() => {
+                        onSelect(item);
+                        onMobileOpenChange(false);
+                      }}
+                    >
+                      {item.display_name}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-col gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start rounded-xl"
+                  onClick={() => {
+                    setName("");
+                    setError(null);
+                    setCreateOpen(true);
+                    onMobileOpenChange(false);
+                  }}
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  Create profile
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start rounded-xl"
+                  disabled={!profile}
+                  onClick={() => {
+                    setName(profile?.display_name ?? "");
+                    setError(null);
+                    setRenameOpen(true);
+                    onMobileOpenChange(false);
+                  }}
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                  Rename profile
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start rounded-xl"
+                  disabled={!profile}
+                  onClick={() => {
+                    openSkillsDialog();
+                    onMobileOpenChange(false);
+                  }}
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                  Edit skills
+                </Button>
+              </div>
+              {fallbackNotice && (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {fallbackNotice}
+                </p>
+              )}
+            </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Close</AlertDialogCancel>
             </AlertDialogFooter>

@@ -32,7 +32,7 @@ describe("ThemeToggle", () => {
     const user = userEvent.setup();
     renderToggle();
 
-    await user.click(await screen.findByRole("button", { name: "Theme" }));
+    await user.click(await screen.findByRole("button", { name: /Theme/i }));
     await user.click(await screen.findByRole("menuitem", { name: /Light/i }));
 
     await waitFor(() => {

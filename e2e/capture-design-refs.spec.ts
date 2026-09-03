@@ -105,7 +105,7 @@ test.describe("design reference capture", () => {
       fullPage: false,
     });
 
-    await page.getByRole("button", { name: "Theme" }).click();
+    await page.getByRole("button", { name: /Theme/i }).click();
     await page.getByRole("menuitem", { name: "Dark" }).click({ force: true });
     await page.locator("html.dark").waitFor();
     await page.screenshot({
@@ -131,7 +131,7 @@ test.describe("design reference capture", () => {
       fullPage: false,
     });
 
-    await page.getByRole("button", { name: "Theme" }).click();
+    await page.getByRole("button", { name: /Theme/i }).click();
     await page.getByRole("menuitem", { name: "Dark" }).click({ force: true });
     await page.locator("html.dark").waitFor();
     await page.screenshot({

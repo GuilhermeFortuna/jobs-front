@@ -146,12 +146,10 @@ test("library state move and delete confirmation", async ({
   ).toBeVisible({
     timeout: 15_000,
   });
-  // Exactly one <nav> is ever in the accessibility tree at a given viewport
-  // (the other is display:none), so this resolves unambiguously today and
-  // continues to if the redesign consolidates to a single responsive nav.
+  // Single responsive navigation landmark with tab triggers for the three views.
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: "saved" })
+    .getByRole("tab", { name: "saved" })
     .click();
   await expect(
     page.getByRole("heading", { name: "Saved roles", exact: true }),
@@ -169,7 +167,7 @@ test("library state move and delete confirmation", async ({
   }
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: "applied" })
+    .getByRole("tab", { name: "applied" })
     .click();
   await expect(
     page.getByRole("heading", { name: "Applications", exact: true }),
@@ -232,8 +230,59 @@ test("profile isolation uses remembered profile id", async ({ page }) => {
   await installApiMock(page);
   await page.goto("/");
   await expect(
+    page.getByRole("heading", { name: "Staff Engineer" }).first(),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
     page.getByRole("combobox", { name: "Select profile" }),
   ).toContainText("Gui");
+  await expect(
+    page.getByRole("combobox", { name: "Select profile" }),
+  ).toHaveCount(1);
+});
+
+test("shell exposes a single navigation and header ambient", async ({
+  page,
+}) => {
+  await installApiMock(page);
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Staff Engineer" }).first(),
+  ).toBeVisible({ timeout: 15_000 });
+
+  await expect(page.getByRole("navigation")).toHaveCount(1);
+  const nav = page.getByRole("navigation");
+  await expect(nav.getByRole("tab", { name: "discover" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await nav.getByRole("tab", { name: "saved" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Saved roles", exact: true }),
+  ).toBeVisible();
+  await nav.getByRole("tab", { name: "applied" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Applications", exact: true }),
+  ).toBeVisible();
+  await expect(nav.getByRole("tab", { name: "applied" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await nav.getByRole("tab", { name: "discover" }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(nav.getByRole("tab", { name: "saved" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+
+  const ambient = page.getByTestId("header-ambient");
+  await expect(ambient).toHaveAttribute("aria-hidden", "true");
+  await expect(ambient).toHaveCSS("pointer-events", "none");
+  await expect(
+    page.getByTestId("job-card").getByTestId("header-ambient"),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-testid="job-detail"] [data-testid="header-ambient"]'),
+  ).toHaveCount(0);
 });
 
 test("degraded search reads as partial and names the failed provider", async ({

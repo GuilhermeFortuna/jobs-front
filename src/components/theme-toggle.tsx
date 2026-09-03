@@ -31,7 +31,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         type="button"
-        aria-label="Theme"
+        aria-label={`Theme (${THEME_OPTIONS.find((option) => option.value === active)?.label ?? "System"})`}
         className={cn(
           "inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-ring",
           className,
