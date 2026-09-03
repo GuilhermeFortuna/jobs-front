@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 /.pnp
+.venv/
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -40,3 +41,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cursor
+.cursor/*
+.agents/*
+skills-lock.json
+test-results/
+playwright-report/
+
+.pnpm-store/*
