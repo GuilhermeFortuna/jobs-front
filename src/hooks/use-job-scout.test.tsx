@@ -13,6 +13,7 @@ const profile: Profile = {
   display_name: "Owner",
   preferences: {
     query: "profile default",
+    location: "",
     country: null,
     worldwide: null,
     seniority: [],
@@ -22,6 +23,7 @@ const profile: Profile = {
     posted_within_days: null,
     sort: "relevance",
   },
+  skills: [],
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 };

@@ -34,6 +34,7 @@ export function JobScout() {
   const scout = useJobScout();
   const [detailOpen, setDetailOpen] = useState(false);
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
 
   const title =
     scout.view === "discover"
@@ -62,9 +63,12 @@ export function JobScout() {
         setProfile={scout.setProfile}
         onCreateProfile={scout.createProfile}
         onRenameProfile={scout.renameProfile}
+        onUpdateSkills={scout.updateSkills}
         profileFallbackNotice={scout.profileFallbackNotice}
         mobileProfileOpen={mobileProfileOpen}
         setMobileProfileOpen={setMobileProfileOpen}
+        skillsOpen={skillsOpen}
+        onSkillsOpenChange={setSkillsOpen}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -173,6 +177,20 @@ export function JobScout() {
                 </Select>
               )}
             </div>
+            {scout.view === "discover" &&
+              scout.filters.sort === "relevance" && (
+                <p className="mt-3 text-sm text-[#6d7690]">
+                  Ordered by how well each role matches your{" "}
+                  <button
+                    type="button"
+                    className="font-semibold text-[#3d49df] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5964ed]"
+                    onClick={() => setSkillsOpen(true)}
+                  >
+                    profile skills
+                  </button>
+                  .
+                </p>
+              )}
           </div>
 
           <SearchStatus

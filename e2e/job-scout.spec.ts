@@ -306,5 +306,8 @@ test("provider filter offers only the providers the API reports", async ({
   await expect(
     page.getByRole("checkbox", { name: "Remote OK" }).first(),
   ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "Adzuna · Unavailable" }).first(),
+  ).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Jobicy" })).toHaveCount(0);
 });

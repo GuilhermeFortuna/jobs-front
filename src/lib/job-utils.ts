@@ -86,6 +86,7 @@ export function countActiveFilters(filters: {
   posted_within_days?: number | null;
   country?: string | null;
   worldwide?: boolean | null;
+  location?: string;
 }): number {
   return (
     filters.employment_types.length +
@@ -93,6 +94,7 @@ export function countActiveFilters(filters: {
     filters.providers.length +
     Number(Boolean(filters.minimum_salary)) +
     Number(Boolean(filters.posted_within_days)) +
-    Number(Boolean(filters.country || filters.worldwide))
+    Number(Boolean(filters.country || filters.worldwide)) +
+    Number(Boolean(filters.location?.trim()))
   );
 }

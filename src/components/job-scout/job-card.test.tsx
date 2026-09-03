@@ -12,6 +12,7 @@ const job: JobResult = {
   employment_type: "full_time",
   remote_type: "remote",
   job_url: "https://himalayas.app/jobs/1",
+  relevance_score: 42.5,
   alternate_sources: [
     {
       provider: "remoteok",
@@ -34,5 +35,41 @@ describe("JobCard", () => {
     );
     expect(screen.getByText(/Himalayas/)).toBeInTheDocument();
     expect(screen.getByText(/\+1 sources/)).toBeInTheDocument();
+  });
+
+  it("renders matched skills in API order and hides an empty list", () => {
+    const { rerender } = render(
+      <JobCard
+        job={{ ...job, matched_skills: ["Python", "PostgreSQL"] }}
+        selected={false}
+        onSelect={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+    const chips = screen.getByLabelText("Matched skills");
+    expect(chips.textContent).toBe("PythonPostgreSQL");
+
+    rerender(
+      <JobCard
+        job={{ ...job, matched_skills: [] }}
+        selected={false}
+        onSelect={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Matched skills")).not.toBeInTheDocument();
+  });
+
+  it("never displays the raw relevance score", () => {
+    const { container } = render(
+      <JobCard
+        job={job}
+        selected={false}
+        onSelect={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+    expect(container.textContent).not.toMatch(/42\.5/);
+    expect(container.textContent).not.toMatch(/relevance_score/i);
   });
 });
