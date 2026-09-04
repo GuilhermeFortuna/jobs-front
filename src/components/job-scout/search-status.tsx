@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   RefreshCw,
   Sparkles,
   XCircle,
@@ -25,6 +26,7 @@ import {
 import type { StatusKind } from "@/hooks/use-job-scout";
 import type { ProviderSearchStatus } from "@/lib/api";
 import { formatProviderName } from "@/lib/providers";
+import { cn } from "@/lib/utils";
 
 type SearchStatusProps = {
   view: "discover" | "saved" | "applied";
@@ -263,6 +265,15 @@ function buildLoadingSequences(
   ];
 }
 
+function isSettledStatus(statusKind: StatusKind): boolean {
+  return (
+    statusKind === "complete" ||
+    statusKind === "partial" ||
+    statusKind === "empty" ||
+    statusKind === "failed"
+  );
+}
+
 export function SearchStatus({
   view,
   loading,
@@ -284,6 +295,19 @@ export function SearchStatus({
   const narrow = useNarrowViewport();
   const expressive =
     loading && view === "discover" && !reducedMotion && !narrow;
+  const settled = view === "discover" && !loading && isSettledStatus(statusKind);
+  const [detailsOpen, setDetailsOpen] = useState(() => !settled);
+
+  useEffect(() => {
+    if (view !== "discover") return;
+    if (loading) {
+      setDetailsOpen(true);
+      return;
+    }
+    if (isSettledStatus(statusKind)) {
+      setDetailsOpen(false);
+    }
+  }, [loading, statusKind, view]);
 
   const failedProviders = providerStatuses.filter(
     (entry) => entry.status === "failed",
@@ -301,21 +325,35 @@ export function SearchStatus({
     onRetry,
     onRunSearch,
   });
+  // Partial banners duplicate the notice strip; fold them when collapsed.
+  const showBanner =
+    banner !== null && (detailsOpen || banner.key !== "partial");
 
   const sequences = useMemo(
     () => buildLoadingSequences(stripNotice || notice, providerStatuses),
     [stripNotice, notice, providerStatuses],
   );
 
+  const showDetailsToggle =
+    view === "discover" &&
+    (providerStatuses.length > 0 || settled || loading);
+
   return (
-    <div className="border-b bg-surface px-5 py-5" data-testid="search-status">
+    <div
+      className={cn(
+        "border-b bg-surface px-5",
+        detailsOpen ? "py-5" : "py-3",
+      )}
+      data-testid="search-status"
+      data-collapsed={detailsOpen ? undefined : "true"}
+    >
       <div className="sr-only" aria-live="polite">
         {liveAnnouncement}
       </div>
 
-      {banner ? <StatusBanner config={banner} /> : null}
+      {showBanner && banner ? <StatusBanner config={banner} /> : null}
 
-      {expressive ? (
+      {expressive && detailsOpen ? (
         <div className="mb-3" data-testid="search-in-progress-expressive">
           <AILoadingState sequences={sequences} progress={progress} />
         </div>
@@ -333,14 +371,35 @@ export function SearchStatus({
             aria-hidden="true"
           />
         )}
-        <span className="min-w-0 break-words" data-testid="search-notice">
+        <span className="min-w-0 flex-1 break-words" data-testid="search-notice">
           {stripNotice}
         </span>
         {checked > 0 && view === "discover" && (
-          <span className="ml-auto shrink-0 tabular-nums">
+          <span className="shrink-0 tabular-nums">
             {checked.toLocaleString()} checked
           </span>
         )}
+        {showDetailsToggle ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 shrink-0 rounded-lg"
+            aria-expanded={detailsOpen}
+            aria-controls="search-status-details"
+            aria-label={
+              detailsOpen ? "Hide search details" : "Show search details"
+            }
+            data-testid="search-status-toggle"
+            onClick={() => setDetailsOpen((open) => !open)}
+          >
+            <ChevronDown
+              className={cn(
+                "size-3.5 transition-transform motion-reduce:transition-none",
+                detailsOpen && "rotate-180",
+              )}
+            />
+          </Button>
+        ) : null}
         {view === "discover" && onRefresh && (
           <Tooltip>
             <TooltipTrigger
@@ -348,7 +407,7 @@ export function SearchStatus({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="ml-auto h-8 rounded-lg text-primary-emphasis dark:text-primary"
+                  className="h-8 shrink-0 rounded-lg text-primary-emphasis dark:text-primary"
                   onClick={onRefresh}
                   disabled={!refreshEnabled}
                   aria-describedby={
@@ -370,41 +429,43 @@ export function SearchStatus({
         </p>
       ) : null}
 
-      {view === "discover" && providerStatuses.length > 0 && (
-        <ul
-          className="mt-3 flex flex-col gap-2"
-          aria-label="Provider search status"
-          data-testid="provider-status-list"
-        >
-          {providerStatuses.map((entry) => (
-            <li
-              key={entry.provider}
-              className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground"
-              role="status"
+      {view === "discover" && detailsOpen ? (
+        <div id="search-status-details" data-testid="search-status-details">
+          {providerStatuses.length > 0 ? (
+            <ul
+              className="mt-3 flex flex-col gap-2"
+              aria-label="Provider search status"
+              data-testid="provider-status-list"
             >
-              <ProviderStatusIcon status={entry.status} />
-              <span className="min-w-0 shrink break-words">
-                {formatProviderName(entry.provider)}
-              </span>
-              <span className="ml-auto shrink-0 tabular-nums">
-                {entry.checked_count > 0
-                  ? `${entry.checked_count.toLocaleString()} checked`
-                  : entry.status === "failed"
-                    ? "Unavailable"
-                    : `${Math.round(entry.progress * 100)}%`}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+              {providerStatuses.map((entry) => (
+                <li
+                  key={entry.provider}
+                  className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground"
+                  role="status"
+                >
+                  <ProviderStatusIcon status={entry.status} />
+                  <span className="min-w-0 shrink break-words">
+                    {formatProviderName(entry.provider)}
+                  </span>
+                  <span className="ml-auto shrink-0 tabular-nums">
+                    {entry.checked_count > 0
+                      ? `${entry.checked_count.toLocaleString()} checked`
+                      : entry.status === "failed"
+                        ? "Unavailable"
+                        : `${Math.round(entry.progress * 100)}%`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
-      {view === "discover" && (
-        <Progress
-          value={progress * 100}
-          className="mt-3"
-          aria-label="Search progress"
-        />
-      )}
+          <Progress
+            value={progress * 100}
+            className="mt-3"
+            aria-label="Search progress"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

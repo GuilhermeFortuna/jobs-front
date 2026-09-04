@@ -53,11 +53,78 @@ import { hasSearchCriteria } from "@/lib/search-params";
 
 const SKELETON_COUNT = 5;
 
+const DEFAULT_FILTER_WIDTH = 272;
+const DEFAULT_RESULTS_WIDTH = 620;
+const FILTER_WIDTH_LIMITS = { min: 220, max: 380 };
+const RESULTS_WIDTH_LIMITS = { min: 460, max: 820 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function ResizeHandle({
+  label,
+  value,
+  min,
+  max,
+  onResize,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onResize: (next: number) => void;
+}) {
+  return (
+    <div
+      aria-label={label}
+      aria-orientation="vertical"
+      aria-valuemax={max}
+      aria-valuemin={min}
+      aria-valuenow={value}
+      className="group relative z-10 hidden w-2 shrink-0 cursor-col-resize items-stretch justify-center xl:flex"
+      role="separator"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+          event.preventDefault();
+          onResize(clamp(value - 16, min, max));
+        }
+        if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+          event.preventDefault();
+          onResize(clamp(value + 16, min, max));
+        }
+      }}
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        const startX = event.clientX;
+        const startValue = value;
+        const handle = event.currentTarget;
+        const move = (moveEvent: PointerEvent) =>
+          onResize(clamp(startValue + moveEvent.clientX - startX, min, max));
+        const stop = () => {
+          handle.removeEventListener("pointermove", move);
+          handle.removeEventListener("pointerup", stop);
+          handle.removeEventListener("pointercancel", stop);
+        };
+        handle.addEventListener("pointermove", move);
+        handle.addEventListener("pointerup", stop);
+        handle.addEventListener("pointercancel", stop);
+      }}
+    >
+      <span className="w-px bg-border transition-colors group-hover:bg-primary group-focus-visible:bg-primary" />
+      <span className="absolute inset-y-0 -left-2 -right-2" />
+    </div>
+  );
+}
+
 export function JobScout() {
   const scout = useJobScout();
   const [detailOpen, setDetailOpen] = useState(false);
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [filterWidth, setFilterWidth] = useState(DEFAULT_FILTER_WIDTH);
+  const [resultsWidth, setResultsWidth] = useState(DEFAULT_RESULTS_WIDTH);
 
   const title =
     scout.view === "discover"
@@ -105,7 +172,10 @@ export function JobScout() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <Card className="hidden w-[272px] shrink-0 rounded-none border-0 border-r bg-background py-0 shadow-none ring-0 lg:flex lg:flex-col">
+        <Card
+          className="hidden shrink-0 rounded-none border-0 border-r bg-background py-0 shadow-none ring-0 lg:flex lg:flex-col"
+          style={{ width: filterWidth }}
+        >
           <ScrollArea className="h-full">
             <div className="px-5 py-6">
               <FiltersPanel
@@ -120,7 +190,18 @@ export function JobScout() {
           </ScrollArea>
         </Card>
 
-        <Card className="flex min-w-0 flex-1 flex-col rounded-none border-0 border-r bg-background py-0 shadow-card ring-0 xl:max-w-[540px]">
+        <ResizeHandle
+          label="Resize filters panel"
+          value={filterWidth}
+          min={FILTER_WIDTH_LIMITS.min}
+          max={FILTER_WIDTH_LIMITS.max}
+          onResize={setFilterWidth}
+        />
+
+        <Card
+          className="flex min-w-0 flex-1 flex-col rounded-none border-0 border-r bg-background py-0 shadow-card ring-0 xl:flex-none"
+          style={{ width: resultsWidth }}
+        >
           <div className="border-b bg-surface px-4 py-4 lg:hidden">
             <div className="flex gap-2">
               <InputGroup className="h-11 flex-1 rounded-xl">
@@ -189,6 +270,30 @@ export function JobScout() {
                 </SheetContent>
               </Sheet>
             </div>
+          </div>
+
+          <div className="hidden border-b bg-surface px-5 py-4 lg:block">
+            <InputGroup className="h-11 rounded-xl">
+              <InputGroupAddon>
+                <Search aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
+                aria-label="Search keywords"
+                placeholder="Search by keyword"
+                value={scout.filters.query}
+                onChange={(event) =>
+                  scout.setFilters({
+                    ...scout.filters,
+                    query: event.target.value,
+                  })
+                }
+                onKeyDown={(event) =>
+                  event.key === "Enter" &&
+                  hasSearchCriteria(scout.filters) &&
+                  void scout.runSearch()
+                }
+              />
+            </InputGroup>
           </div>
 
           <div className="border-b bg-surface px-5 py-5">
@@ -340,6 +445,14 @@ export function JobScout() {
             )}
           </footer>
         </Card>
+
+        <ResizeHandle
+          label="Resize results panel"
+          value={resultsWidth}
+          min={RESULTS_WIDTH_LIMITS.min}
+          max={RESULTS_WIDTH_LIMITS.max}
+          onResize={setResultsWidth}
+        />
 
         <Card className="hidden min-w-0 flex-1 rounded-none border-0 bg-background py-0 shadow-none ring-0 xl:flex xl:flex-col">
           <ScrollArea className="h-full">

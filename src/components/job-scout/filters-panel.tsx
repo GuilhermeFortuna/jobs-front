@@ -1,6 +1,6 @@
 "use client";
 
-import { BookmarkCheck, Search, SlidersHorizontal } from "lucide-react";
+import { BookmarkCheck, SlidersHorizontal } from "lucide-react";
 
 import {
   Accordion,
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/field";
 import {
   InputGroup,
-  InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
 import {
@@ -190,26 +189,9 @@ export function FiltersPanel({
         className="w-full"
       >
         <AccordionItem value="basics">
-          <AccordionTrigger>Keywords & location</AccordionTrigger>
+          <AccordionTrigger>Location & eligibility</AccordionTrigger>
           <AccordionContent>
             <FieldGroup>
-              <Field>
-                <FieldLabel>Keywords</FieldLabel>
-                <InputGroup className="h-10 rounded-xl">
-                  <InputGroupAddon>
-                    <Search aria-hidden="true" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    aria-label="Search keywords"
-                    value={filters.query}
-                    onChange={(event) =>
-                      setFilters({ ...filters, query: event.target.value })
-                    }
-                    onKeyDown={(event) => event.key === "Enter" && onSearch()}
-                    disabled={disabled}
-                  />
-                </InputGroup>
-              </Field>
               <Field>
                 <FieldLabel>Role location</FieldLabel>
                 <InputGroup className="h-10 rounded-xl">

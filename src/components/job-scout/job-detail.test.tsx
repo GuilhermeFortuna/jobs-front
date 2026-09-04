@@ -66,6 +66,38 @@ describe("JobDetail", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("formats flattened job descriptions into readable sections and lists", () => {
+    render(
+      <JobDetail
+        job={{
+          ...job,
+          description:
+            "We build dependable financial tooling. Our tools & stack- Python, AWS, and PostgreSQL What you'll do - Build API services - Improve the platform - Support product teams What you'll bring- 5+ years of Python experience - Strong SQL skills",
+        }}
+        onSave={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Our tools & stack" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "What you'll do" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "What you'll bring" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Build API services")).toHaveProperty(
+      "tagName",
+      "LI",
+    );
+    expect(screen.getByText("Strong SQL skills")).toHaveProperty(
+      "tagName",
+      "LI",
+    );
+  });
+
   it("renders canonical and alternate source links", () => {
     render(<JobDetail job={job} onSave={vi.fn()} onRemove={vi.fn()} />);
     openSourcesTab();

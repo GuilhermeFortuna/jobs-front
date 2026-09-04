@@ -285,6 +285,34 @@ test("shell exposes a single navigation and header ambient", async ({
   ).toHaveCount(0);
 });
 
+test("wide shell keeps search above cards and exposes resizable zones", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Desktop-only layout");
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("textbox", { name: "Search keywords" }).last(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("separator", { name: "Resize filters panel" }),
+  ).toBeVisible();
+  const resultsHandle = page.getByRole("separator", {
+    name: "Resize results panel",
+  });
+  await expect(resultsHandle).toHaveAttribute("aria-valuenow", "620");
+  await resultsHandle.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(resultsHandle).toHaveAttribute("aria-valuenow", "636");
+  const handleBox = await resultsHandle.boundingBox();
+  expect(handleBox).not.toBeNull();
+  await page.mouse.move(handleBox!.x + 4, handleBox!.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(handleBox!.x + 44, handleBox!.y + 20);
+  await page.mouse.up();
+  await expect(resultsHandle).toHaveAttribute("aria-valuenow", "676");
+});
+
 test("degraded search reads as partial and names the failed provider", async ({
   page,
 }) => {

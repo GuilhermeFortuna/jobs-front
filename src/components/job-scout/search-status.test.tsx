@@ -1,4 +1,11 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  within,
+  waitFor,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -13,6 +20,13 @@ function renderStatus(props: ComponentProps<typeof SearchStatus>) {
       <SearchStatus {...props} />
     </TooltipProvider>,
   );
+}
+
+async function expandDetails() {
+  const toggle = screen.getByTestId("search-status-toggle");
+  if (toggle.getAttribute("aria-expanded") === "false") {
+    await userEvent.click(toggle);
+  }
 }
 
 const baseProps = {
@@ -32,7 +46,7 @@ const baseProps = {
 };
 
 describe("SearchStatus", () => {
-  it("names failed providers in the partial banner", () => {
+  it("names failed providers in the partial banner", async () => {
     renderStatus({
       ...baseProps,
       notice: "Search partially complete · 1 roles · Jobicy unavailable",
@@ -59,10 +73,78 @@ describe("SearchStatus", () => {
       statusKind: "partial",
       onRefresh: vi.fn(),
     });
+    expect(screen.getByTestId("search-status")).toHaveAttribute(
+      "data-collapsed",
+      "true",
+    );
+    expect(
+      screen.queryByTestId("status-banner-partial"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("provider-status-list")).not.toBeInTheDocument();
+
+    await expandDetails();
+
     expect(screen.getByTestId("status-banner-partial")).toBeInTheDocument();
     expect(screen.getAllByText(/Jobicy unavailable/).length).toBeGreaterThan(0);
     expect(screen.getByText("Himalayas")).toBeInTheDocument();
     expect(screen.getByText("Jobicy")).toBeInTheDocument();
+  });
+
+  it("auto-collapses provider details when a search finishes", async () => {
+    const { rerender } = renderStatus({
+      ...baseProps,
+      loading: true,
+      notice: "Searching…",
+      liveAnnouncement: "Searching…",
+      statusKind: "loading",
+      progress: 0.5,
+      checked: 40,
+      providerStatuses: [
+        {
+          provider: "himalayas",
+          status: "loading",
+          progress: 0.5,
+          checked_count: 40,
+        },
+      ],
+    });
+
+    expect(screen.getByTestId("provider-status-list")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search progress")).toBeInTheDocument();
+
+    rerender(
+      <TooltipProvider>
+        <SearchStatus
+          {...baseProps}
+          notice="Search complete · 12 matching roles"
+          liveAnnouncement="Search complete · 12 matching roles"
+          statusKind="complete"
+          total={12}
+          progress={1}
+          checked={100}
+          providerStatuses={[
+            {
+              provider: "himalayas",
+              status: "complete",
+              progress: 1,
+              checked_count: 100,
+            },
+          ]}
+        />
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("search-status")).toHaveAttribute(
+        "data-collapsed",
+        "true",
+      );
+    });
+    expect(screen.queryByTestId("provider-status-list")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search progress")).not.toBeInTheDocument();
+    expect(screen.getByTestId("search-notice")).toHaveTextContent(
+      "Search complete · 12 matching roles",
+    );
   });
 
   it("shows a total-failure alert separately from partial completion", () => {
@@ -114,6 +196,7 @@ describe("SearchStatus", () => {
         notice: "Search complete",
       },
       banner: "status-banner-warning",
+      foldedWhenCollapsed: false,
     },
     {
       name: "expired",
@@ -124,6 +207,7 @@ describe("SearchStatus", () => {
         onRunSearch: vi.fn(),
       },
       banner: "status-banner-expired",
+      foldedWhenCollapsed: false,
     },
     {
       name: "offline",
@@ -133,6 +217,7 @@ describe("SearchStatus", () => {
         onRetry: vi.fn(),
       },
       banner: "status-banner-offline",
+      foldedWhenCollapsed: false,
     },
     {
       name: "validation",
@@ -141,11 +226,19 @@ describe("SearchStatus", () => {
         notice: "Query is required",
       },
       banner: "status-banner-validation",
+      foldedWhenCollapsed: false,
     },
-  ])("renders the $name banner variant", ({ props, banner }) => {
-    renderStatus({ ...baseProps, ...props });
-    expect(screen.getByTestId(banner)).toBeInTheDocument();
-  });
+  ])(
+    "renders the $name banner variant",
+    async ({ props, banner, foldedWhenCollapsed }) => {
+      renderStatus({ ...baseProps, ...props });
+      if (foldedWhenCollapsed) {
+        expect(screen.queryByTestId(banner)).not.toBeInTheDocument();
+        await expandDetails();
+      }
+      expect(screen.getByTestId(banner)).toBeInTheDocument();
+    },
+  );
 
   it("preserves the aria-live announcement region", () => {
     renderStatus({

@@ -28,6 +28,80 @@ type JobDetailProps = {
   onRemove: () => void;
 };
 
+const DESCRIPTION_SECTION_PATTERN =
+  /\s*(What you(?:'|’)ll do|What you(?:'|’)ll bring|Responsibilities|Requirements|Qualifications|Benefits|Nice to have|Our tools\s*(?:&|and)\s*stack|About (?:the role|us|the company)|The role|Who you are)\s*[-:–—]?\s*/gi;
+
+type DescriptionBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "list"; items: string[] };
+
+function formatDescription(description: string): DescriptionBlock[] {
+  const normalized = description
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .trim();
+  const sectioned = normalized.replace(
+    DESCRIPTION_SECTION_PATTERN,
+    (_match, section: string) => `\n\n${section}\n\n`,
+  );
+
+  return sectioned.split(/\n\s*\n+/).flatMap((block): DescriptionBlock[] => {
+    const text = block.trim();
+    if (!text) return [];
+
+    if (
+      /^(?:What you(?:'|’)ll do|What you(?:'|’)ll bring|Responsibilities|Requirements|Qualifications|Benefits|Nice to have|Our tools\s*(?:&|and)\s*stack|About (?:the role|us|the company)|The role|Who you are)$/i.test(
+        text,
+      )
+    ) {
+      return [{ type: "heading" as const, text }];
+    }
+
+    const items = text
+      .split(/\s+(?:[-•]|\d+[.)])\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return items.length > 1
+      ? [{ type: "list" as const, items }]
+      : [{ type: "paragraph" as const, text }];
+  });
+}
+
+function JobDescription({ description }: { description: string }) {
+  const blocks = formatDescription(description);
+
+  return (
+    <div className="space-y-5 text-[15px] leading-7 text-foreground/80">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          return (
+            <h3
+              key={`${block.text}-${index}`}
+              className="pt-1 text-base font-semibold text-foreground"
+            >
+              {block.text}
+            </h3>
+          );
+        }
+        if (block.type === "list") {
+          return (
+            <ul
+              key={index}
+              className="list-disc space-y-2 pl-5 marker:text-muted-foreground"
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`${item}-${itemIndex}`}>{item}</li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={index}>{block.text}</p>;
+      })}
+    </div>
+  );
+}
+
 function SourceLinks({
   provider,
   jobUrl,
@@ -205,10 +279,12 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="mt-0">
-            <div className="whitespace-pre-line text-[15px] leading-7 text-foreground/80">
-              {job.description ||
-                "Open the source listing to read the full role description."}
-            </div>
+            <JobDescription
+              description={
+                job.description ||
+                "Open the source listing to read the full role description."
+              }
+            />
             <h3 className="mt-7 font-semibold text-foreground">Role details</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant="outline">{job.remote_type}</Badge>
