@@ -22,12 +22,12 @@ export function hasSearchCriteria(filters: SearchFilters): boolean {
     filters.query.trim() ||
     filters.location.trim() ||
     filters.country ||
-    filters.worldwide === true ||
+    filters.worldwide != null ||
     filters.seniority.length ||
     filters.employment_types.length ||
-    filters.minimum_salary !== null ||
+    filters.minimum_salary != null ||
     filters.salary_stated_only === true ||
-    filters.posted_within_days !== null,
+    filters.posted_within_days != null,
   );
 }
 

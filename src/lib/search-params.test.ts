@@ -32,6 +32,7 @@ describe("search-params", () => {
     expect(hasSearchCriteria({ ...base, location: "Lisbon" })).toBe(true);
     expect(hasSearchCriteria({ ...base, country: "Brazil" })).toBe(true);
     expect(hasSearchCriteria({ ...base, worldwide: true })).toBe(true);
+    expect(hasSearchCriteria({ ...base, worldwide: false })).toBe(true);
     expect(hasSearchCriteria({ ...base, seniority: ["Senior"] })).toBe(true);
     expect(
       hasSearchCriteria({ ...base, employment_types: ["Full Time"] }),
@@ -39,6 +40,18 @@ describe("search-params", () => {
     expect(hasSearchCriteria({ ...base, minimum_salary: 100_000 })).toBe(true);
     expect(hasSearchCriteria({ ...base, salary_stated_only: true })).toBe(true);
     expect(hasSearchCriteria({ ...base, posted_within_days: 7 })).toBe(true);
+    expect(
+      hasSearchCriteria({
+        ...base,
+        minimum_salary: undefined as unknown as null,
+      }),
+    ).toBe(false);
+    expect(
+      hasSearchCriteria({
+        ...base,
+        posted_within_days: undefined as unknown as null,
+      }),
+    ).toBe(false);
   });
   it("round-trips all meaningful filters through URL params", () => {
     const filters: SearchFilters = {

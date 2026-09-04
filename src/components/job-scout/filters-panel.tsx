@@ -1,6 +1,7 @@
 "use client";
 
 import { BookmarkCheck, SlidersHorizontal } from "lucide-react";
+import { useEffect } from "react";
 
 import {
   Accordion,
@@ -157,6 +158,20 @@ export function FiltersPanel({
         : [...values, value],
     });
   };
+
+  // Drop unavailable providers from the active selection so a hidden
+  // unconfigured/disabled key cannot ride along on the next search.
+  useEffect(() => {
+    if (!providers?.length || filters.providers.length === 0) return;
+    const enabled = new Set(
+      providers
+        .filter((provider) => provider.state === "enabled")
+        .map((p) => p.key),
+    );
+    const next = filters.providers.filter((key) => enabled.has(key));
+    if (next.length === filters.providers.length) return;
+    setFilters({ ...filters, providers: next });
+  }, [providers, filters, setFilters]);
 
   const providerCheckboxOptions: CheckboxGroupOption[] = providerOptions(
     providers,

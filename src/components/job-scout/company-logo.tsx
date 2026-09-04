@@ -53,8 +53,9 @@ export function CompanyLogo({
   size = "sm",
   className,
 }: CompanyLogoProps) {
-  const [failed, setFailed] = useState(false);
-  const showImage = Boolean(logoUrl) && !failed;
+  // Key failure by URL so selecting another job retries its logo.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showImage = Boolean(logoUrl) && failedUrl !== logoUrl;
 
   if (!showImage) {
     return <LetterTile company={company} size={size} className={className} />;
@@ -86,7 +87,7 @@ export function CompanyLogo({
         loading="lazy"
         referrerPolicy="no-referrer"
         className="size-full object-contain"
-        onError={() => setFailed(true)}
+        onError={() => setFailedUrl(logoUrl!)}
       />
     </div>
   );

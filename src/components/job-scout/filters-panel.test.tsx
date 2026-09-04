@@ -98,6 +98,27 @@ describe("FiltersPanel provider filter", () => {
     expect(unavailable).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText(/app_id|credential|api key/i)).toBeNull();
   });
+
+  it("strips unavailable providers out of the active filter selection", () => {
+    const setFilters = vi.fn();
+    renderPanel(
+      [
+        { key: "himalayas", display_name: "Himalayas", state: "enabled" },
+        { key: "adzuna", display_name: "Adzuna", state: "unconfigured" },
+      ],
+      {
+        filters: {
+          ...DEFAULT_FILTERS,
+          providers: ["himalayas", "adzuna"],
+        },
+        setFilters,
+      },
+    );
+
+    expect(setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ providers: ["himalayas"] }),
+    );
+  });
 });
 
 describe("FiltersPanel location", () => {
