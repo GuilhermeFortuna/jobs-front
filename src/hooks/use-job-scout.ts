@@ -27,17 +27,29 @@ import {
 } from "@/lib/search-notice";
 import {
   EMPTY_FILTERS,
+  hasSearchCriteria,
   hasUrlFilters,
   resolveInitialFilters,
   syncFiltersToUrl,
 } from "@/lib/search-params";
 
 export type View = "discover" | "saved" | "applied";
+export type ActionNotice = {
+  id: number;
+  message: string;
+};
 
 export type { StatusKind };
 
 const PROFILE_STORAGE_KEY = "job-scout-profile";
 const POLL_INTERVAL_MS = 900;
+/**
+ * Matches the backend's own default (`/searches/{id}` page_size default 25,
+ * max 100). The previous value of 100 sat at the API ceiling, which meant
+ * pagination only ever appeared past 100 results and the list stayed
+ * effectively unbounded for almost every search.
+ */
+export const SEARCH_PAGE_SIZE = 25;
 
 const FALLBACK_FILTERS: SearchFilters = { ...EMPTY_FILTERS };
 
@@ -67,6 +79,7 @@ export function useJobScout() {
   const [jobs, setJobs] = useState<DisplayJob[]>([]);
   const [selected, setSelected] = useState<DisplayJob | null>(null);
   const [searchId, setSearchId] = useState<string | null>(null);
+  const [page, setPageState] = useState(1);
   const [progress, setProgress] = useState(0);
   const [checked, setChecked] = useState(0);
   const [total, setTotal] = useState<number | null>(null);
@@ -76,6 +89,7 @@ export function useJobScout() {
   >([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("Loading profiles…");
+  const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [statusKind, setStatusKind] = useState<StatusKind>("idle");
   const [apiOnline, setApiOnline] = useState(true);
@@ -89,61 +103,109 @@ export function useJobScout() {
   const pollGeneration = useRef(0);
   const initGeneration = useRef(0);
   const selectedRef = useRef<DisplayJob | null>(null);
+  const pageRef = useRef(1);
   const [providers, setProviders] = useState<ProviderDescriptor[]>([]);
   const previousProfileId = useRef<string | null>(null);
   const lastAnnouncementKey = useRef("");
+  const actionNoticeId = useRef(0);
 
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
 
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
   const cancelPolling = useCallback(() => {
     pollGeneration.current += 1;
   }, []);
 
-  const applySearchPage = useCallback((page: SearchPage, keepStale = false) => {
-    setProgress(page.progress);
-    setChecked(page.checked_count);
-    setWarnings(page.warnings);
-    setProviderStatuses(page.providers ?? []);
-    setNotice(buildNotice(page));
-    const nextKey = announcementKey(page);
-    if (nextKey !== lastAnnouncementKey.current) {
-      lastAnnouncementKey.current = nextKey;
-      setLiveAnnouncement(buildNotice(page));
+  /** Shared expired/offline branch for every search fetch failure. */
+  const handleSearchFailure = useCallback((error: unknown) => {
+    setLoading(false);
+    if (error instanceof ApiError && error.isExpired) {
+      setSearchExpired(true);
+      setStatusKind("expired");
+      setNotice("Search expired · run a new search to continue");
+      return;
     }
-    setSearchExpired(false);
-    setStatusKind(statusKindFromPage(page, false, false));
-
-    setJobs((current) => {
-      const nextItems = page.items;
-      if (keepStale && current.length && !nextItems.length) {
-        // Stale results stay on screen, and stay saveable, until the
-        // replacement search has something useful to show.
-        return current;
-      }
-      const next = nextItems as DisplayJob[];
-      setSearchId(page.search_id);
-      setTotal(page.total);
-      setSelected((prev) => preserveSelection(next, prev));
-      return next;
-    });
+    setApiOnline(false);
+    setStatusKind("offline");
+    setNotice(formatApiError(error));
   }, []);
+
+  const notifyAction = useCallback((message: string) => {
+    actionNoticeId.current += 1;
+    setActionNotice({ id: actionNoticeId.current, message });
+  }, []);
+
+  const applySearchPage = useCallback(
+    (
+      page: SearchPage,
+      options?: { keepStale?: boolean; keepSelection?: boolean },
+    ) => {
+      const keepStale = options?.keepStale ?? false;
+      const keepSelection = options?.keepSelection ?? false;
+      setProgress(page.progress);
+      setChecked(page.checked_count);
+      setWarnings(page.warnings);
+      setProviderStatuses(page.providers ?? []);
+      setNotice(buildNotice(page));
+      const nextKey = announcementKey(page);
+      if (nextKey !== lastAnnouncementKey.current) {
+        lastAnnouncementKey.current = nextKey;
+        setLiveAnnouncement(buildNotice(page));
+      }
+      setSearchExpired(false);
+      setStatusKind(statusKindFromPage(page, false, false));
+
+      setJobs((current) => {
+        const nextItems = page.items;
+        if (keepStale && current.length && !nextItems.length) {
+          // Stale results stay on screen, and stay saveable, until the
+          // replacement search has something useful to show.
+          return current;
+        }
+        const next = nextItems as DisplayJob[];
+        setSearchId(page.search_id);
+        setTotal(page.total);
+        setSelected((prev) => {
+          const preserved = preserveSelection(next, prev);
+          // Paging is navigation, not a new result set: the open detail pane
+          // must not silently swap to whichever role happens to lead the new
+          // page just because the selection lives on the page we left.
+          if (keepSelection && prev && findJobIndex(next, prev) === -1) {
+            return prev;
+          }
+          return preserved;
+        });
+        return next;
+      });
+    },
+    [],
+  );
 
   const pollSearch = useCallback(
     async (
       id: string,
       generation: number,
       profileId: string,
-      options?: { keepStale?: boolean },
+      options?: { keepStale?: boolean; keepSelection?: boolean },
     ) => {
       let complete = false;
       while (!complete) {
         if (generation !== pollGeneration.current) return;
         try {
-          const result = await api.search(id, profileId);
+          const result = await api.search(id, profileId, {
+            page: pageRef.current,
+            page_size: SEARCH_PAGE_SIZE,
+          });
           if (generation !== pollGeneration.current) return;
-          applySearchPage(result, options?.keepStale);
+          applySearchPage(result, {
+            keepStale: options?.keepStale,
+            keepSelection: options?.keepSelection,
+          });
           complete = result.is_complete;
           if (!complete) {
             await sleep(POLL_INTERVAL_MS);
@@ -151,23 +213,13 @@ export function useJobScout() {
           }
         } catch (error) {
           if (generation !== pollGeneration.current) return;
-          if (error instanceof ApiError && error.isExpired) {
-            setSearchExpired(true);
-            setStatusKind("expired");
-            setNotice("Search expired · run a new search to continue");
-            setLoading(false);
-            return;
-          }
-          setApiOnline(false);
-          setStatusKind("offline");
-          setNotice(formatApiError(error));
-          setLoading(false);
+          handleSearchFailure(error);
           return;
         }
       }
       setLoading(false);
     },
-    [applySearchPage],
+    [applySearchPage, handleSearchFailure],
   );
 
   const runSearch = useCallback(
@@ -178,8 +230,15 @@ export function useJobScout() {
         return;
       }
       const activeFilters = nextFilters ?? filters;
+      if (!hasSearchCriteria(activeFilters)) {
+        setStatusKind("validation");
+        setNotice("Add at least one job criterion before searching");
+        return;
+      }
       cancelPolling();
       const generation = pollGeneration.current;
+      setPageState(1);
+      pageRef.current = 1;
       setLoading(true);
       setSearchExpired(false);
       setApiOnline(true);
@@ -217,8 +276,15 @@ export function useJobScout() {
 
   const refreshDefaultSearch = useCallback(async () => {
     if (!profile) return;
+    if (!hasSearchCriteria(profile.preferences)) {
+      setStatusKind("validation");
+      setNotice("Save at least one job criterion before refreshing defaults");
+      return;
+    }
     cancelPolling();
     const generation = pollGeneration.current;
+    setPageState(1);
+    pageRef.current = 1;
     setLoading(true);
     setSearchExpired(false);
     setApiOnline(true);
@@ -229,7 +295,7 @@ export function useJobScout() {
     try {
       const result = await api.refreshDefaultSearch(profile.id);
       if (generation !== pollGeneration.current) return;
-      applySearchPage(result, true);
+      applySearchPage(result, { keepStale: true });
       if (!result.is_complete) {
         await pollSearch(result.search_id, generation, profile.id, {
           keepStale: true,
@@ -251,6 +317,54 @@ export function useJobScout() {
       setNotice(formatApiError(error));
     }
   }, [applySearchPage, cancelPolling, pollSearch, profile]);
+
+  const setPage = useCallback(
+    async (nextPage: number) => {
+      if (
+        !profile ||
+        !searchId ||
+        nextPage < 1 ||
+        nextPage === pageRef.current
+      ) {
+        return;
+      }
+      const previousPage = pageRef.current;
+      cancelPolling();
+      const generation = pollGeneration.current;
+      setPageState(nextPage);
+      pageRef.current = nextPage;
+      setLoading(true);
+      setApiOnline(true);
+      try {
+        const result = await api.search(searchId, profile.id, {
+          page: nextPage,
+          page_size: SEARCH_PAGE_SIZE,
+        });
+        if (generation !== pollGeneration.current) return;
+        applySearchPage(result, { keepSelection: true });
+        if (!result.is_complete) {
+          await pollSearch(result.search_id, generation, profile.id, {
+            keepSelection: true,
+          });
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        if (generation !== pollGeneration.current) return;
+        setPageState(previousPage);
+        pageRef.current = previousPage;
+        handleSearchFailure(error);
+      }
+    },
+    [
+      applySearchPage,
+      cancelPolling,
+      handleSearchFailure,
+      pollSearch,
+      profile,
+      searchId,
+    ],
+  );
 
   const loadLibrary = useCallback(
     async (state: LibraryState) => {
@@ -369,7 +483,7 @@ export function useJobScout() {
         if (!leavesLibrary) {
           setSelected(saved);
         }
-        setNotice(
+        notifyAction(
           state === "applied" ? "Marked as applied" : "Saved to your library",
         );
       } catch (error) {
@@ -382,7 +496,7 @@ export function useJobScout() {
         setNotice(formatApiError(error));
       }
     },
-    [profile, searchId, selected, view],
+    [notifyAction, profile, searchId, selected, view],
   );
 
   const confirmDelete = useCallback((target: DisplayJob) => {
@@ -400,11 +514,11 @@ export function useJobScout() {
       setJobs(remaining);
       setSelected(preserveSelection(remaining, selectedRef.current));
       setDeleteTarget(null);
-      setNotice("Removed permanently");
+      notifyAction("Removed permanently");
     } catch (error) {
       setNotice(formatApiError(error));
     }
-  }, [deleteTarget, jobs, profile]);
+  }, [deleteTarget, jobs, notifyAction, profile]);
 
   const saveDefaults = useCallback(async () => {
     if (!profile) return;
@@ -416,11 +530,11 @@ export function useJobScout() {
       setProfiles((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
-      setNotice("Default search updated");
+      notifyAction("Default search updated");
     } catch (error) {
       setNotice(formatApiError(error));
     }
-  }, [filters, profile]);
+  }, [filters, notifyAction, profile]);
 
   const createProfile = useCallback(
     async (displayName: string) => {
@@ -428,14 +542,14 @@ export function useJobScout() {
         const created = await api.createProfile({ display_name: displayName });
         setProfiles((current) => [...current, created]);
         setProfile(created);
-        setNotice(`Profile "${created.display_name}" created`);
+        notifyAction(`Profile "${created.display_name}" created`);
         return created;
       } catch (error) {
         setNotice(formatApiError(error));
         throw error;
       }
     },
-    [setProfile],
+    [notifyAction, setProfile],
   );
 
   const renameProfile = useCallback(
@@ -449,14 +563,35 @@ export function useJobScout() {
           current.map((item) => (item.id === updated.id ? updated : item)),
         );
         setProfileState(updated);
-        setNotice("Profile renamed");
+        notifyAction("Profile renamed");
         return updated;
       } catch (error) {
         setNotice(formatApiError(error));
         throw error;
       }
     },
-    [profile],
+    [notifyAction, profile],
+  );
+
+  const updateSkills = useCallback(
+    async (labels: string[]) => {
+      if (!profile) return;
+      try {
+        const updated = await api.updateProfile(profile.id, {
+          skills: labels.map((label) => ({ label })),
+        });
+        setProfiles((current) =>
+          current.map((item) => (item.id === updated.id ? updated : item)),
+        );
+        setProfileState(updated);
+        notifyAction("Skills updated · run Search to apply the new ranking");
+        return updated;
+      } catch (error) {
+        setNotice(formatApiError(error));
+        throw error;
+      }
+    },
+    [notifyAction, profile],
   );
 
   const initializeFromApi = useCallback(async () => {
@@ -491,46 +626,20 @@ export function useJobScout() {
     previousProfileId.current = current.id;
 
     cancelPolling();
-    const pollGen = pollGeneration.current;
-    setLoading(true);
+    setPageState(1);
+    pageRef.current = 1;
+    setLoading(false);
     setSearchExpired(false);
-    setStatusKind("loading");
-
-    if (hasUrlFilters(urlParams)) {
-      setNotice("Starting search");
-      const result = await api.startSearch(current.id, initialFilters);
-      if (
-        generation !== initGeneration.current ||
-        pollGen !== pollGeneration.current
-      ) {
-        return;
-      }
-      applySearchPage(result);
-      if (!result.is_complete) {
-        await pollSearch(result.search_id, pollGen, current.id);
-      } else {
-        setLoading(false);
-      }
-      return;
-    }
-
-    setNotice("Refreshing default search");
-    const result = await api.refreshDefaultSearch(current.id);
-    if (
-      generation !== initGeneration.current ||
-      pollGen !== pollGeneration.current
-    ) {
-      return;
-    }
-    applySearchPage(result, true);
-    if (!result.is_complete) {
-      await pollSearch(result.search_id, pollGen, current.id, {
-        keepStale: true,
-      });
-    } else {
-      setLoading(false);
-    }
-  }, [applySearchPage, cancelPolling, pollSearch]);
+    setStatusKind("idle");
+    setSearchId(null);
+    setJobs([]);
+    setSelected(null);
+    setTotal(null);
+    setWarnings([]);
+    setProviderStatuses([]);
+    setProgress(0);
+    setChecked(0);
+  }, [cancelPolling]);
 
   const retryConnection = useCallback(async () => {
     try {
@@ -541,9 +650,10 @@ export function useJobScout() {
         await initializeFromApi();
         return;
       }
-      setNotice("Connected · refreshing search");
       if (view === "discover") {
-        await refreshDefaultSearch();
+        setLoading(false);
+        setStatusKind("idle");
+        setNotice("Connected · ready to search");
       } else {
         await loadLibrary(view);
       }
@@ -552,7 +662,7 @@ export function useJobScout() {
       setStatusKind("offline");
       setNotice("Backend is still offline");
     }
-  }, [initializeFromApi, loadLibrary, profile, refreshDefaultSearch, view]);
+  }, [initializeFromApi, loadLibrary, profile, view]);
 
   useEffect(() => {
     let active = true;
@@ -613,8 +723,18 @@ export function useJobScout() {
           FALLBACK_FILTERS,
         );
     setFiltersState(nextFilters);
-    void runSearch(nextFilters);
-  }, [booted, cancelPolling, profile, runSearch]);
+    setLoading(false);
+    setSearchId(null);
+    setJobs([]);
+    setSelected(null);
+    setTotal(null);
+    setWarnings([]);
+    setProviderStatuses([]);
+    setProgress(0);
+    setChecked(0);
+    setStatusKind("idle");
+    setNotice("Ready to search");
+  }, [booted, cancelPolling, profile]);
 
   return {
     providers,
@@ -625,6 +745,8 @@ export function useJobScout() {
     jobs,
     selected,
     searchId,
+    page,
+    pageSize: SEARCH_PAGE_SIZE,
     progress,
     checked,
     total,
@@ -632,16 +754,21 @@ export function useJobScout() {
     providerStatuses,
     loading,
     notice,
+    actionNotice,
     liveAnnouncement,
     statusKind,
     apiOnline,
     searchExpired,
+    canRefreshDefaultSearch: Boolean(
+      profile && hasSearchCriteria(profile.preferences),
+    ),
     profileFallbackNotice,
     deleteTarget,
     setDeleteTarget,
     setSelected,
     setFilters,
     setProfile,
+    setPage,
     changeView,
     runSearch,
     refreshDefaultSearch,
@@ -651,6 +778,7 @@ export function useJobScout() {
     saveDefaults,
     createProfile,
     renameProfile,
+    updateSkills,
     retryConnection,
   };
 }

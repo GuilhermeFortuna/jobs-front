@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useJobScout } from "@/hooks/use-job-scout";
+import { SEARCH_PAGE_SIZE, useJobScout } from "@/hooks/use-job-scout";
 import type { JobResult, Profile, SavedJob } from "@/lib/api";
 
 const PROFILE_ID = "11111111-1111-1111-1111-111111111111";
@@ -13,6 +13,7 @@ const profile: Profile = {
   display_name: "Owner",
   preferences: {
     query: "profile default",
+    location: "",
     country: null,
     worldwide: null,
     seniority: [],
@@ -22,6 +23,7 @@ const profile: Profile = {
     posted_within_days: null,
     sort: "relevance",
   },
+  skills: [],
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 };
@@ -124,6 +126,20 @@ function install() {
   );
 }
 
+async function activateDefaultSearch(result: {
+  current: {
+    profile: Profile | null;
+    refreshDefaultSearch: () => Promise<void>;
+  };
+}) {
+  await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
+    timeout: 3000,
+  });
+  await act(async () => {
+    await result.current.refreshDefaultSearch();
+  });
+}
+
 beforeEach(() => {
   localStorage.clear();
   window.history.replaceState(null, "", "/");
@@ -142,52 +158,35 @@ afterEach(() => {
 });
 
 describe("useJobScout boot", () => {
-  it("searches with the filters restored from the URL", async () => {
+  it("restores URL filters without starting a search", async () => {
     window.history.replaceState(null, "", "/?q=designer&salary=200000");
-    handlers.push((route) =>
-      route.path === "/searches" && route.method === "POST"
-        ? searchPage({ items: [job("url-1", "Designer role")] })
-        : undefined,
-    );
-    handlers.push((route) =>
-      route.path.endsWith("/default-search/refresh")
-        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
-        : undefined,
-    );
 
     const { result } = renderHook(() => useJobScout());
 
-    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+    await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
       timeout: 3000,
     });
-    const started = routes.find(
-      (route) => route.path === "/searches" && route.method === "POST",
-    );
-    expect(started).toBeDefined();
-    expect(started?.body).toMatchObject({
-      profile_id: PROFILE_ID,
-      filters: { query: "designer", minimum_salary: 200000 },
+    expect(result.current.filters).toMatchObject({
+      query: "designer",
+      minimum_salary: 200000,
     });
+    expect(routes.some((route) => route.path === "/searches")).toBe(false);
     expect(
       routes.some((route) => route.path.endsWith("/default-search/refresh")),
     ).toBe(false);
   });
 
-  it("uses the profile default search when the URL has no filters", async () => {
-    handlers.push((route) =>
-      route.path.endsWith("/default-search/refresh")
-        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
-        : undefined,
-    );
-
+  it("restores meaningful profile defaults without refreshing", async () => {
     const { result } = renderHook(() => useJobScout());
 
-    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+    await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
       timeout: 3000,
     });
+    expect(result.current.filters.query).toBe("profile default");
+    expect(routes.some((route) => route.path === "/searches")).toBe(false);
     expect(
       routes.some((route) => route.path.endsWith("/default-search/refresh")),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("reports a partial search when a provider fails but results remain", async () => {
@@ -217,6 +216,7 @@ describe("useJobScout boot", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
 
     await waitFor(() => expect(result.current.statusKind).toBe("partial"), {
       timeout: 3000,
@@ -238,6 +238,7 @@ describe("useJobScout boot", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
 
     await waitFor(() => expect(result.current.statusKind).toBe("failed"), {
       timeout: 3000,
@@ -292,6 +293,7 @@ describe("useJobScout default-search refresh", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -324,7 +326,8 @@ describe("useJobScout default-search refresh", () => {
         : undefined,
     );
 
-    renderHook(() => useJobScout());
+    const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
 
     await waitFor(
       () =>
@@ -371,6 +374,7 @@ describe("useJobScout retry and library", () => {
     await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
       timeout: 3000,
     });
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -390,6 +394,7 @@ describe("useJobScout retry and library", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -433,6 +438,7 @@ describe("useJobScout retry and library", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -487,6 +493,7 @@ describe("useJobScout retry and library", () => {
     });
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -514,6 +521,171 @@ describe("useJobScout retry and library", () => {
     expect(result.current.view).toBe("applied");
     expect(result.current.jobs[0]).toMatchObject({
       id: "saved-fast-applied",
+    });
+  });
+});
+
+describe("useJobScout pagination", () => {
+  it("restores the current page when a page request fails", async () => {
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({ total: 50, serving_search_id: STALE_SEARCH_ID })
+        : undefined,
+    );
+    handlers.push((route) =>
+      route.method === "GET" &&
+      route.path.startsWith(`/searches/${STALE_SEARCH_ID}`) &&
+      route.url.searchParams.get("page") === "2"
+        ? new Response(JSON.stringify({ detail: "Page unavailable" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          })
+        : undefined,
+    );
+
+    const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+
+    await act(async () => {
+      await result.current.setPage(2);
+    });
+
+    expect(result.current.page).toBe(1);
+    expect(result.current.jobs[0]).toMatchObject({
+      provider_job_id: "stale-1",
+    });
+    expect(result.current.statusKind).toBe("offline");
+  });
+
+  it("requests a new page and preserves selection across the page change", async () => {
+    const pageOneJob = job("p1", "Page one role");
+    const pageTwoJob = job("p2", "Page two role");
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({
+            search_id: STALE_SEARCH_ID,
+            items: [pageOneJob],
+            page: 1,
+            page_size: 100,
+            total: 150,
+            serving_search_id: STALE_SEARCH_ID,
+          })
+        : undefined,
+    );
+    handlers.push((route) => {
+      if (
+        route.method !== "GET" ||
+        !route.path.startsWith(`/searches/${STALE_SEARCH_ID}`)
+      ) {
+        return undefined;
+      }
+      const requested = Number(route.url.searchParams.get("page") ?? "1");
+      if (requested === 2) {
+        return searchPage({
+          search_id: STALE_SEARCH_ID,
+          items: [pageTwoJob],
+          page: 2,
+          page_size: 100,
+          total: 150,
+        });
+      }
+      return searchPage({
+        search_id: STALE_SEARCH_ID,
+        items: [pageOneJob],
+        page: 1,
+        page_size: 100,
+        total: 150,
+      });
+    });
+
+    const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+    expect(result.current.jobs[0]).toMatchObject({ provider_job_id: "p1" });
+
+    await act(async () => {
+      result.current.setSelected(result.current.jobs[0]!);
+    });
+    expect(result.current.selected).toMatchObject({ provider_job_id: "p1" });
+
+    await act(async () => {
+      await result.current.setPage(2);
+    });
+
+    await waitFor(
+      () =>
+        expect(result.current.jobs[0]).toMatchObject({
+          provider_job_id: "p2",
+        }),
+      { timeout: 3000 },
+    );
+    expect(result.current.page).toBe(2);
+    const pageTwoRequest = routes.find(
+      (route) =>
+        route.method === "GET" &&
+        route.path.startsWith(`/searches/${STALE_SEARCH_ID}`) &&
+        route.url.searchParams.get("page") === "2",
+    );
+    expect(pageTwoRequest).toBeDefined();
+    expect(pageTwoRequest!.url.searchParams.get("page_size")).toBe(
+      String(SEARCH_PAGE_SIZE),
+    );
+    // Paging is navigation: the selection made on page 1 survives it rather
+    // than snapping to whichever role happens to lead page 2.
+    expect(result.current.selected).toMatchObject({
+      provider_job_id: "p1",
+    });
+  });
+
+  it("keeps selection when the selected job appears on the fetched page", async () => {
+    const shared = job("shared", "Shared role");
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({
+            search_id: STALE_SEARCH_ID,
+            items: [shared],
+            page: 1,
+            total: 200,
+            serving_search_id: STALE_SEARCH_ID,
+          })
+        : undefined,
+    );
+    handlers.push((route) => {
+      if (
+        route.method !== "GET" ||
+        !route.path.startsWith(`/searches/${STALE_SEARCH_ID}`)
+      ) {
+        return undefined;
+      }
+      return searchPage({
+        search_id: STALE_SEARCH_ID,
+        items: [shared],
+        page: Number(route.url.searchParams.get("page") ?? "1"),
+        total: 200,
+      });
+    });
+
+    const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+    await act(async () => {
+      result.current.setSelected(result.current.jobs[0]!);
+    });
+    await act(async () => {
+      await result.current.setPage(2);
+    });
+    await waitFor(() => expect(result.current.page).toBe(2), {
+      timeout: 3000,
+    });
+    expect(result.current.selected).toMatchObject({
+      provider_job_id: "shared",
     });
   });
 });

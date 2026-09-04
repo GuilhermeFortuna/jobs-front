@@ -5,14 +5,27 @@ export const API_BASE =
 
 export type SearchSort = "relevance" | "newest" | "salary";
 
+export type ProviderState = "enabled" | "unconfigured" | "disabled";
+
+export type Skill = {
+  label: string;
+  token: string;
+};
+
+export type SkillLabel = {
+  label: string;
+};
+
 export type SearchFilters = {
   query: string;
+  location: string;
   country?: string | null;
   worldwide?: boolean | null;
   seniority: string[];
   employment_types: string[];
   providers: string[];
   minimum_salary?: number | null;
+  salary_stated_only?: boolean;
   posted_within_days?: number | null;
   sort: SearchSort;
 };
@@ -27,6 +40,7 @@ export type AlternateSource = {
 export type ProviderDescriptor = {
   key: string;
   display_name: string;
+  state: ProviderState;
 };
 
 export type ProviderSearchStatus = {
@@ -40,6 +54,7 @@ export type Profile = {
   id: string;
   display_name: string;
   preferences: SearchFilters;
+  skills: Skill[];
   created_at: string;
   updated_at: string;
 };
@@ -47,11 +62,13 @@ export type Profile = {
 export type ProfileCreate = {
   display_name: string;
   preferences?: SearchFilters;
+  skills?: SkillLabel[];
 };
 
 export type ProfilePatch = {
   display_name?: string;
   preferences?: SearchFilters;
+  skills?: SkillLabel[];
 };
 
 export type JobResult = {
@@ -72,6 +89,8 @@ export type JobResult = {
   apply_url?: string | null;
   company_logo_url?: string | null;
   posted_at?: string | null;
+  relevance_score?: number;
+  matched_skills?: string[];
   alternate_sources?: AlternateSource[];
 };
 

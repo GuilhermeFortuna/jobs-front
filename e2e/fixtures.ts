@@ -51,16 +51,19 @@ const providerStatuses = [
 
 export const fixtures = {
   // Jobicy is deliberately absent: the deployment has it disabled, so the
-  // provider filter must not offer it.
+  // provider filter must not offer it as selectable. Adzuna is reported as
+  // unconfigured so the workspace can show it as unavailable.
   providerList: [
-    { key: "himalayas", display_name: "Himalayas" },
-    { key: "remoteok", display_name: "Remote OK" },
+    { key: "himalayas", display_name: "Himalayas", state: "enabled" as const },
+    { key: "remoteok", display_name: "Remote OK", state: "enabled" as const },
+    { key: "adzuna", display_name: "Adzuna", state: "unconfigured" as const },
   ],
   profile: {
     id: PROFILE_ID,
     display_name: "Gui",
     preferences: {
       query: "staff engineer",
+      location: "",
       country: null,
       worldwide: true,
       seniority: ["Senior"],
@@ -70,6 +73,7 @@ export const fixtures = {
       posted_within_days: null,
       sort: "relevance" as const,
     },
+    skills: [],
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },

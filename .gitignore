@@ -42,8 +42,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# cursor
+# cursor — track the project UI skill; keep other Cursor local state private
 .cursor/*
+!.cursor/skills/
+!.cursor/skills/job-scout-ui/
+!.cursor/skills/job-scout-ui/SKILL.md
 .agents/*
 skills-lock.json
 test-results/

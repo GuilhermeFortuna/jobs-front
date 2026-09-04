@@ -23,6 +23,9 @@ describe("providers", () => {
     expect(formatProviderName("himalayas")).toBe("Himalayas");
     expect(formatProviderName("remoteok")).toBe("Remote OK");
     expect(formatProviderName("jobicy")).toBe("Jobicy");
+    expect(formatProviderName("adzuna")).toBe("Adzuna");
+    expect(formatProviderName("remotive")).toBe("Remotive");
+    expect(formatProviderName("weworkremotely")).toBe("We Work Remotely");
   });
 
   it("detects Remote OK in canonical and alternate sources", () => {

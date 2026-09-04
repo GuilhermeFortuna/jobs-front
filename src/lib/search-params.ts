@@ -2,15 +2,34 @@ import type { SearchFilters, SearchSort } from "@/lib/api";
 
 export const EMPTY_FILTERS: SearchFilters = {
   query: "",
+  location: "",
   country: null,
   worldwide: null,
   seniority: [],
   employment_types: [],
   providers: [],
   minimum_salary: null,
+  salary_stated_only: false,
   posted_within_days: null,
   sort: "relevance",
 };
+
+/** Whether filters authorize an upstream provider search rather than only
+ * changing local ordering or provider scope. Kept in sync with the API rule.
+ */
+export function hasSearchCriteria(filters: SearchFilters): boolean {
+  return Boolean(
+    filters.query.trim() ||
+    filters.location.trim() ||
+    filters.country ||
+    filters.worldwide != null ||
+    filters.seniority.length ||
+    filters.employment_types.length ||
+    filters.minimum_salary != null ||
+    filters.salary_stated_only === true ||
+    filters.posted_within_days != null,
+  );
+}
 
 const SORT_VALUES: SearchSort[] = ["relevance", "newest", "salary"];
 
@@ -34,12 +53,14 @@ function serializeList(values: string[]): string | null {
 export function hasUrlFilters(params: URLSearchParams): boolean {
   return [
     "q",
+    "location",
     "country",
     "worldwide",
     "seniority",
     "employment",
     "providers",
     "salary",
+    "salary_stated",
     "posted",
     "sort",
   ].some((key) => params.has(key));
@@ -51,10 +72,12 @@ export function filtersFromSearchParams(
   const sortParam = params.get("sort");
   const worldwideParam = params.get("worldwide");
   const salaryParam = params.get("salary");
+  const salaryStatedParam = params.get("salary_stated");
   const postedParam = params.get("posted");
 
   return {
     query: params.get("q") ?? "",
+    location: params.get("location") ?? "",
     country: params.get("country"),
     worldwide:
       worldwideParam === "1" ? true : worldwideParam === "0" ? false : null,
@@ -62,6 +85,7 @@ export function filtersFromSearchParams(
     employment_types: parseList(params.get("employment")),
     providers: parseList(params.get("providers")),
     minimum_salary: salaryParam ? Number(salaryParam) || null : null,
+    salary_stated_only: salaryStatedParam === "1",
     posted_within_days: postedParam ? Number(postedParam) || null : null,
     sort: sortParam && isSort(sortParam) ? sortParam : "relevance",
   };
@@ -73,6 +97,8 @@ export function searchParamsFromFilters(
   const params = new URLSearchParams();
   const trimmedQuery = filters.query.trim();
   if (trimmedQuery) params.set("q", trimmedQuery);
+  const trimmedLocation = filters.location.trim();
+  if (trimmedLocation) params.set("location", trimmedLocation);
   if (filters.country) params.set("country", filters.country);
   if (filters.worldwide === true) params.set("worldwide", "1");
   if (filters.worldwide === false) params.set("worldwide", "0");
@@ -84,6 +110,7 @@ export function searchParamsFromFilters(
   if (providers) params.set("providers", providers);
   if (filters.minimum_salary)
     params.set("salary", String(filters.minimum_salary));
+  if (filters.salary_stated_only) params.set("salary_stated", "1");
   if (filters.posted_within_days)
     params.set("posted", String(filters.posted_within_days));
   if (filters.sort !== "relevance") params.set("sort", filters.sort);

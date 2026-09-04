@@ -9,8 +9,12 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { CompanyLogo } from "@/components/job-scout/company-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isSavedJob, money, type DisplayJob } from "@/lib/job-utils";
 import {
   formatProviderName,
@@ -23,6 +27,80 @@ type JobDetailProps = {
   onSave: (state: "saved" | "applied") => void;
   onRemove: () => void;
 };
+
+const DESCRIPTION_SECTION_PATTERN =
+  /\s*(What you(?:'|’)ll do|What you(?:'|’)ll bring|Responsibilities|Requirements|Qualifications|Benefits|Nice to have|Our tools\s*(?:&|and)\s*stack|About (?:the role|us|the company)|The role|Who you are)\s*[-:–—]?\s*/gi;
+
+type DescriptionBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "list"; items: string[] };
+
+function formatDescription(description: string): DescriptionBlock[] {
+  const normalized = description
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .trim();
+  const sectioned = normalized.replace(
+    DESCRIPTION_SECTION_PATTERN,
+    (_match, section: string) => `\n\n${section}\n\n`,
+  );
+
+  return sectioned.split(/\n\s*\n+/).flatMap((block): DescriptionBlock[] => {
+    const text = block.trim();
+    if (!text) return [];
+
+    if (
+      /^(?:What you(?:'|’)ll do|What you(?:'|’)ll bring|Responsibilities|Requirements|Qualifications|Benefits|Nice to have|Our tools\s*(?:&|and)\s*stack|About (?:the role|us|the company)|The role|Who you are)$/i.test(
+        text,
+      )
+    ) {
+      return [{ type: "heading" as const, text }];
+    }
+
+    const items = text
+      .split(/\s+(?:[-•]|\d+[.)])\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return items.length > 1
+      ? [{ type: "list" as const, items }]
+      : [{ type: "paragraph" as const, text }];
+  });
+}
+
+function JobDescription({ description }: { description: string }) {
+  const blocks = formatDescription(description);
+
+  return (
+    <div className="space-y-5 text-[15px] leading-7 text-foreground/80">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          return (
+            <h3
+              key={`${block.text}-${index}`}
+              className="pt-1 text-base font-semibold text-foreground"
+            >
+              {block.text}
+            </h3>
+          );
+        }
+        if (block.type === "list") {
+          return (
+            <ul
+              key={index}
+              className="list-disc space-y-2 pl-5 marker:text-muted-foreground"
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`${item}-${itemIndex}`}>{item}</li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={index}>{block.text}</p>;
+      })}
+    </div>
+  );
+}
 
 function SourceLinks({
   provider,
@@ -37,38 +115,44 @@ function SourceLinks({
 }) {
   const label = formatProviderName(provider);
   return (
-    <div className="rounded-xl border bg-[#fafbfc] p-4">
-      <p className="text-sm font-semibold text-[#111936]">
-        {isPrimary ? "Primary source" : label}
-        {isPrimary && (
-          <span className="ml-2 font-normal text-[#6d7690]">({label})</span>
-        )}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-3 text-sm">
-        <a
-          href={jobUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={`View ${label} listing`}
-          className="inline-flex items-center gap-1.5 font-semibold text-[#3d49df]"
-        >
-          View listing
-          <ExternalLink className="size-4" aria-hidden="true" />
-        </a>
-        {applyUrl && (
+    <Card size="sm" className="rounded-xl border bg-surface ring-0">
+      <CardHeader>
+        <CardTitle className="text-sm font-semibold text-foreground">
+          {isPrimary ? "Primary source" : label}
+          {isPrimary && (
+            <span className="ml-2 font-normal text-muted-foreground">
+              ({label})
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-3 text-sm">
           <a
-            href={applyUrl}
+            href={jobUrl}
             target="_blank"
             rel="noreferrer"
-            aria-label={`Apply via ${label}`}
-            className="inline-flex items-center gap-1.5 font-semibold text-[#3d49df]"
+            aria-label={`View ${label} listing`}
+            className="inline-flex items-center gap-1.5 font-semibold text-primary-emphasis dark:text-primary"
           >
-            Apply
+            View listing
             <ExternalLink className="size-4" aria-hidden="true" />
           </a>
-        )}
-      </div>
-    </div>
+          {applyUrl && (
+            <a
+              href={applyUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Apply via ${label}`}
+              className="inline-flex items-center gap-1.5 font-semibold text-primary-emphasis dark:text-primary"
+            >
+              Apply
+              <ExternalLink className="size-4" aria-hidden="true" />
+            </a>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -79,11 +163,16 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
   const alternates = job.alternate_sources ?? [];
 
   return (
-    <div className="mx-auto flex min-h-full max-w-[760px] flex-col px-5 pb-24 pt-7 sm:px-8 sm:pb-8 lg:px-10">
+    <div
+      className="mx-auto flex min-h-full max-w-[760px] flex-col px-5 pb-24 pt-7 sm:px-8 sm:pb-8 lg:px-10"
+      data-testid="job-detail"
+    >
       <div className="flex items-start gap-4">
-        <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[#111936] text-xl font-bold text-white">
-          {job.company.slice(0, 1)}
-        </div>
+        <CompanyLogo
+          company={job.company}
+          logoUrl={job.company_logo_url}
+          size="md"
+        />
         <div className="min-w-0">
           <h2 className="text-2xl font-semibold tracking-[-0.025em] sm:text-[30px]">
             {job.title}
@@ -95,14 +184,14 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
               target="_blank"
               rel="noreferrer"
               aria-label={`Open ${job.title} listing on ${formatProviderName(job.provider)}`}
-              className="text-[#3d49df]"
+              className="text-primary-emphasis dark:text-primary"
             >
               <ExternalLink className="size-4" />
             </a>
           </p>
         </div>
       </div>
-      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#5f6982]">
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Globe2 className="size-4" aria-hidden="true" />
           {job.location_text ?? "Remote"}
@@ -113,7 +202,10 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
         </span>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Badge className="border-0 bg-[#e9f7ec] px-3 py-1 text-[#236c39]">
+        <Badge
+          variant="outline"
+          className="border-data-border px-3 py-1 text-data-foreground"
+        >
           {money(job)} {job.salary_currency ?? ""}
         </Badge>
         <Badge variant="outline" className="break-words">
@@ -126,7 +218,29 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </Badge>
         )}
       </div>
-      <div className="mt-6 grid grid-cols-2 gap-3 border-y py-5">
+      {job.matched_skills && job.matched_skills.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-foreground">
+            Matched skills
+          </h3>
+          <div
+            className="mt-2 flex flex-wrap gap-2"
+            aria-label="Matched skills"
+          >
+            {job.matched_skills.map((skill) => (
+              <Badge
+                key={skill}
+                variant="outline"
+                className="border-primary-border bg-primary-soft px-3 py-1 text-primary-emphasis dark:text-primary"
+              >
+                {skill}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      <Separator className="mt-6" />
+      <div className="grid grid-cols-2 gap-3 py-5">
         <Button
           variant="outline"
           className="h-11 rounded-xl"
@@ -136,55 +250,78 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           {isSaved ? "Saved" : isApplied ? "Move to saved" : "Save"}
         </Button>
         <Button
-          className="h-11 rounded-xl bg-[#f26450] text-white hover:bg-[#df503d]"
+          variant="outline"
+          className="h-11 rounded-xl border-applied-border bg-transparent text-applied-foreground hover:bg-applied-soft hover:text-applied-foreground dark:border-applied-border dark:bg-transparent dark:hover:bg-applied-soft"
           onClick={() => onSave("applied")}
         >
           <CheckCircle2 />
           {isApplied ? "Applied" : "Mark as applied"}
         </Button>
       </div>
+      <Separator />
       <article className="mt-7 flex-1">
-        <div className="mb-6 flex gap-7 border-b text-sm font-semibold text-[#68728a]">
-          <span className="border-b-2 border-[#3d49df] pb-3 text-[#3d49df]">
-            Overview
-          </span>
-        </div>
-        <div className="whitespace-pre-line text-[15px] leading-7 text-[#3d4660]">
-          {job.description ||
-            "Open the source listing to read the full role description."}
-        </div>
-        <h3 className="mt-7 font-semibold text-[#111936]">Role details</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Badge variant="outline">{job.remote_type}</Badge>
-          <Badge variant="outline">
-            {job.employment_type.replaceAll("_", " ")}
-          </Badge>
-          {job.seniority && <Badge variant="outline">{job.seniority}</Badge>}
-        </div>
-        <h3 className="mt-7 font-semibold text-[#111936]">Sources</h3>
-        <div className="mt-3 space-y-3">
-          <SourceLinks
-            provider={job.provider}
-            jobUrl={job.job_url}
-            applyUrl={job.apply_url}
-            isPrimary
-          />
-          {alternates.map((source) => (
-            <SourceLinks
-              key={`${source.provider}:${source.provider_job_id}`}
-              provider={source.provider}
-              jobUrl={source.job_url}
-              applyUrl={source.apply_url}
+        <Tabs defaultValue="overview">
+          <TabsList
+            variant="line"
+            className="mb-6 h-auto w-full justify-start gap-7 rounded-none bg-transparent p-0"
+          >
+            <TabsTrigger
+              value="overview"
+              className="rounded-none border-b-2 border-transparent px-0 pb-3 data-active:border-primary data-active:shadow-none"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="sources"
+              className="rounded-none border-b-2 border-transparent px-0 pb-3 data-active:border-primary data-active:shadow-none"
+            >
+              Sources
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="mt-0">
+            <JobDescription
+              description={
+                job.description ||
+                "Open the source listing to read the full role description."
+              }
             />
-          ))}
-        </div>
+            <h3 className="mt-7 font-semibold text-foreground">Role details</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant="outline">{job.remote_type}</Badge>
+              <Badge variant="outline">
+                {job.employment_type.replaceAll("_", " ")}
+              </Badge>
+              {job.seniority && (
+                <Badge variant="outline">{job.seniority}</Badge>
+              )}
+            </div>
+          </TabsContent>
+          <TabsContent value="sources" className="mt-0">
+            <div className="flex flex-col gap-3">
+              <SourceLinks
+                provider={job.provider}
+                jobUrl={job.job_url}
+                applyUrl={job.apply_url}
+                isPrimary
+              />
+              {alternates.map((source) => (
+                <SourceLinks
+                  key={`${source.provider}:${source.provider_job_id}`}
+                  provider={source.provider}
+                  jobUrl={source.job_url}
+                  applyUrl={source.apply_url}
+                />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </article>
       {hasRemoteOkSource(job) && (
-        <p className="mt-8 text-sm leading-6 text-[#768098]">
+        <p className="mt-8 text-sm leading-6 text-muted-foreground">
           {REMOTEOK_ATTRIBUTION.text}{" "}
           <a
             href={REMOTEOK_ATTRIBUTION.url}
-            className="font-semibold text-[#3d49df]"
+            className="font-semibold text-primary-emphasis dark:text-primary"
             target="_blank"
             rel="noreferrer"
           >
@@ -192,11 +329,12 @@ export function JobDetail({ job, onSave, onRemove }: JobDetailProps) {
           </a>
         </p>
       )}
-      <footer className="mt-6 flex items-center border-t pt-5 text-sm text-[#768098]">
+      <Separator className="mt-6" />
+      <footer className="flex items-center pt-5 text-sm text-muted-foreground">
         {saved && (
           <Button
             variant="ghost"
-            className="ml-auto text-[#b34438]"
+            className="ml-auto text-destructive"
             onClick={onRemove}
           >
             <Trash2 />

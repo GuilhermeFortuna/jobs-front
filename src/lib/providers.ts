@@ -10,12 +10,22 @@ export const REMOTEOK_ATTRIBUTION = {
   text: "This job listing is provided by Remote OK. Please link back to https://remoteok.com when displaying this listing.",
 } as const;
 
-export const KNOWN_PROVIDER_KEYS = ["himalayas", "remoteok", "jobicy"] as const;
+export const KNOWN_PROVIDER_KEYS = [
+  "himalayas",
+  "remoteok",
+  "jobicy",
+  "adzuna",
+  "remotive",
+  "weworkremotely",
+] as const;
 
 const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   himalayas: "Himalayas",
   remoteok: "Remote OK",
   jobicy: "Jobicy",
+  adzuna: "Adzuna",
+  remotive: "Remotive",
+  weworkremotely: "We Work Remotely",
 };
 
 export function formatProviderName(key: string): string {
