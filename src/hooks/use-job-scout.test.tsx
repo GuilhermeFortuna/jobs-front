@@ -521,6 +521,39 @@ describe("useJobScout retry and library", () => {
 });
 
 describe("useJobScout pagination", () => {
+  it("restores the current page when a page request fails", async () => {
+    handlers.push((route) =>
+      route.path.endsWith("/default-search/refresh")
+        ? searchPage({ total: 50, serving_search_id: STALE_SEARCH_ID })
+        : undefined,
+    );
+    handlers.push((route) =>
+      route.method === "GET" &&
+      route.path.startsWith(`/searches/${STALE_SEARCH_ID}`) &&
+      route.url.searchParams.get("page") === "2"
+        ? new Response(JSON.stringify({ detail: "Page unavailable" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          })
+        : undefined,
+    );
+
+    const { result } = renderHook(() => useJobScout());
+    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+      timeout: 3000,
+    });
+
+    await act(async () => {
+      await result.current.setPage(2);
+    });
+
+    expect(result.current.page).toBe(1);
+    expect(result.current.jobs[0]).toMatchObject({
+      provider_job_id: "stale-1",
+    });
+    expect(result.current.statusKind).toBe("offline");
+  });
+
   it("requests a new page and preserves selection across the page change", async () => {
     const pageOneJob = job("p1", "Page one role");
     const pageTwoJob = job("p2", "Page two role");

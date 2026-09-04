@@ -283,6 +283,7 @@ describe("SearchStatus", () => {
       screen.getByTestId("search-in-progress-expressive"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("ai-loading")).toBeInTheDocument();
+    expect(screen.getByLabelText("Loading progress: 30%")).toBeInTheDocument();
     expect(screen.getByLabelText("Provider search status")).toBeInTheDocument();
     expect(screen.getByLabelText("Search progress")).toBeInTheDocument();
     vi.unstubAllGlobals();

@@ -83,7 +83,7 @@ export function JobScout() {
 
   return (
     <main className="flex h-dvh min-h-[680px] flex-col overflow-hidden bg-background text-foreground">
-      <NoticeToaster notice={scout.notice} />
+      <NoticeToaster event={scout.actionNotice} />
       <Header
         view={scout.view}
         setView={(next) => {

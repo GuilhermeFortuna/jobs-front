@@ -2,22 +2,28 @@
 
 import { useEffect, useRef } from "react";
 
-import { isTransientNotice } from "@/components/job-scout/transient-notice";
 import { toast } from "@/components/ui/toast";
 
+export type ActionNotice = {
+  id: number;
+  message: string;
+};
+
 /**
- * Promotes transient action outcomes to toasts. SearchStatus suppresses the
- * same strings from the inline strip so nothing is announced twice.
+ * Promotes action outcomes to toasts. Event identities let repeated actions
+ * announce the same message without replaying an already-rendered event.
  */
-export function NoticeToaster({ notice }: { notice: string }) {
-  const lastToasted = useRef<string | null>(null);
+export function NoticeToaster({ event }: { event: ActionNotice | null }) {
+  const lastToastedId = useRef<number | null>(null);
+  const eventId = event?.id;
+  const eventMessage = event?.message;
 
   useEffect(() => {
-    if (!notice || !isTransientNotice(notice)) return;
-    if (lastToasted.current === notice) return;
-    lastToasted.current = notice;
-    toast.add({ title: notice, type: "success" });
-  }, [notice]);
+    if (eventId === undefined || !eventMessage) return;
+    if (lastToastedId.current === eventId) return;
+    lastToastedId.current = eventId;
+    toast.add({ title: eventMessage, type: "success" });
+  }, [eventId, eventMessage]);
 
   return null;
 }

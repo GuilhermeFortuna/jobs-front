@@ -315,7 +315,7 @@ export function SearchStatus({
 
       {expressive ? (
         <div className="mb-3" data-testid="search-in-progress-expressive">
-          <AILoadingState sequences={sequences} />
+          <AILoadingState sequences={sequences} progress={progress} />
         </div>
       ) : null}
 

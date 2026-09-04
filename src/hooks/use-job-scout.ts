@@ -33,6 +33,10 @@ import {
 } from "@/lib/search-params";
 
 export type View = "discover" | "saved" | "applied";
+export type ActionNotice = {
+  id: number;
+  message: string;
+};
 
 export type { StatusKind };
 
@@ -84,6 +88,7 @@ export function useJobScout() {
   >([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("Loading profiles…");
+  const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const [statusKind, setStatusKind] = useState<StatusKind>("idle");
   const [apiOnline, setApiOnline] = useState(true);
@@ -101,6 +106,7 @@ export function useJobScout() {
   const [providers, setProviders] = useState<ProviderDescriptor[]>([]);
   const previousProfileId = useRef<string | null>(null);
   const lastAnnouncementKey = useRef("");
+  const actionNoticeId = useRef(0);
 
   useEffect(() => {
     selectedRef.current = selected;
@@ -126,6 +132,11 @@ export function useJobScout() {
     setApiOnline(false);
     setStatusKind("offline");
     setNotice(formatApiError(error));
+  }, []);
+
+  const notifyAction = useCallback((message: string) => {
+    actionNoticeId.current += 1;
+    setActionNotice({ id: actionNoticeId.current, message });
   }, []);
 
   const applySearchPage = useCallback(
@@ -306,6 +317,7 @@ export function useJobScout() {
       ) {
         return;
       }
+      const previousPage = pageRef.current;
       cancelPolling();
       const generation = pollGeneration.current;
       setPageState(nextPage);
@@ -328,6 +340,8 @@ export function useJobScout() {
         }
       } catch (error) {
         if (generation !== pollGeneration.current) return;
+        setPageState(previousPage);
+        pageRef.current = previousPage;
         handleSearchFailure(error);
       }
     },
@@ -458,7 +472,7 @@ export function useJobScout() {
         if (!leavesLibrary) {
           setSelected(saved);
         }
-        setNotice(
+        notifyAction(
           state === "applied" ? "Marked as applied" : "Saved to your library",
         );
       } catch (error) {
@@ -471,7 +485,7 @@ export function useJobScout() {
         setNotice(formatApiError(error));
       }
     },
-    [profile, searchId, selected, view],
+    [notifyAction, profile, searchId, selected, view],
   );
 
   const confirmDelete = useCallback((target: DisplayJob) => {
@@ -489,11 +503,11 @@ export function useJobScout() {
       setJobs(remaining);
       setSelected(preserveSelection(remaining, selectedRef.current));
       setDeleteTarget(null);
-      setNotice("Removed permanently");
+      notifyAction("Removed permanently");
     } catch (error) {
       setNotice(formatApiError(error));
     }
-  }, [deleteTarget, jobs, profile]);
+  }, [deleteTarget, jobs, notifyAction, profile]);
 
   const saveDefaults = useCallback(async () => {
     if (!profile) return;
@@ -505,11 +519,11 @@ export function useJobScout() {
       setProfiles((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
-      setNotice("Default search updated");
+      notifyAction("Default search updated");
     } catch (error) {
       setNotice(formatApiError(error));
     }
-  }, [filters, profile]);
+  }, [filters, notifyAction, profile]);
 
   const createProfile = useCallback(
     async (displayName: string) => {
@@ -517,14 +531,14 @@ export function useJobScout() {
         const created = await api.createProfile({ display_name: displayName });
         setProfiles((current) => [...current, created]);
         setProfile(created);
-        setNotice(`Profile "${created.display_name}" created`);
+        notifyAction(`Profile "${created.display_name}" created`);
         return created;
       } catch (error) {
         setNotice(formatApiError(error));
         throw error;
       }
     },
-    [setProfile],
+    [notifyAction, setProfile],
   );
 
   const renameProfile = useCallback(
@@ -538,14 +552,14 @@ export function useJobScout() {
           current.map((item) => (item.id === updated.id ? updated : item)),
         );
         setProfileState(updated);
-        setNotice("Profile renamed");
+        notifyAction("Profile renamed");
         return updated;
       } catch (error) {
         setNotice(formatApiError(error));
         throw error;
       }
     },
-    [profile],
+    [notifyAction, profile],
   );
 
   const updateSkills = useCallback(
@@ -559,7 +573,7 @@ export function useJobScout() {
           current.map((item) => (item.id === updated.id ? updated : item)),
         );
         setProfileState(updated);
-        setNotice("Skills updated · re-ranking search");
+        notifyAction("Skills updated · re-ranking search");
         if (view === "discover") {
           await runSearch();
         }
@@ -569,7 +583,7 @@ export function useJobScout() {
         throw error;
       }
     },
-    [profile, runSearch, view],
+    [notifyAction, profile, runSearch, view],
   );
 
   const initializeFromApi = useCallback(async () => {
@@ -749,6 +763,7 @@ export function useJobScout() {
     providerStatuses,
     loading,
     notice,
+    actionNotice,
     liveAnnouncement,
     statusKind,
     apiOnline,

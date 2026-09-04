@@ -135,11 +135,13 @@ const LoadingAnimation = ({ progress }: { progress: number }) => (
 
 type AILoadingStateProps = {
   sequences?: AILoadingSequence[];
+  progress: number;
   className?: string;
 };
 
 export default function AILoadingState({
   sequences = DEFAULT_SEQUENCES,
+  progress,
   className,
 }: AILoadingStateProps) {
   const safeSequences = sequences.length > 0 ? sequences : DEFAULT_SEQUENCES;
@@ -198,10 +200,7 @@ export default function AILoadingState({
       number: windowStart + offset + 1,
     }));
 
-  const progressPct =
-    safeSequences.length > 0
-      ? ((sequenceIndex + 1) / safeSequences.length) * 100
-      : 0;
+  const progressPct = Math.min(100, Math.max(0, progress * 100));
 
   return (
     <div
