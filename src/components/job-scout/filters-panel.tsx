@@ -16,10 +16,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import {
-  InputGroup,
-  InputGroupInput,
-} from "@/components/ui/input-group";
+import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
 import {
   Select,
   SelectContent,
@@ -46,7 +43,7 @@ type FiltersPanelProps = {
 };
 
 const EMPLOYMENT_TYPES = ["Full Time", "Contractor", "Part Time", "Intern"];
-const SENIORITY_LEVELS = ["Senior", "Manager", "Executive"];
+const SENIORITY_LEVELS = ["Entry", "Mid", "Senior", "Manager", "Executive"];
 const SALARY_STEPS = [0, 100_000, 150_000, 200_000] as const;
 
 /** Never leave the provider filter empty if the API is slow or unreachable. */
@@ -354,6 +351,25 @@ export function FiltersPanel({
                 </div>
               </Field>
               <Field>
+                <label className="flex items-center gap-2.5 text-sm text-foreground/80">
+                  <Checkbox
+                    checked={filters.salary_stated_only === true}
+                    disabled={disabled}
+                    aria-label="Stated pay only"
+                    onCheckedChange={(checked) =>
+                      setFilters({
+                        ...filters,
+                        salary_stated_only: checked === true,
+                      })
+                    }
+                  />
+                  <span aria-hidden="true">Stated pay only</span>
+                </label>
+                <FieldDescription className="text-xs leading-5">
+                  Only include roles with a salary range or amount listed.
+                </FieldDescription>
+              </Field>
+              <Field>
                 <FieldLabel>Posted within</FieldLabel>
                 <Select
                   value={String(filters.posted_within_days ?? 0)}
@@ -406,8 +422,8 @@ export function FiltersPanel({
         id="search-criteria-help"
         className="text-xs leading-5 text-muted-foreground"
       >
-        Add keywords, a location, eligibility, seniority, employment type, a
-        salary floor, or posting age to search.
+        Add keywords, a location, eligibility, seniority, employment type,
+        salary, or posting age to search.
       </p>
     </div>
   );

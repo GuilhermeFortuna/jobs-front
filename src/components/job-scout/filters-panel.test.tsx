@@ -141,6 +141,7 @@ describe("FiltersPanel actions and upgraded controls", () => {
         query: "designer",
         employment_types: ["Full Time"],
         minimum_salary: 100000,
+        salary_stated_only: true,
       },
       setFilters,
     });
@@ -187,6 +188,23 @@ describe("FiltersPanel actions and upgraded controls", () => {
     expect(screen.getByText("$150,000")).toBeInTheDocument();
     expect(screen.getByLabelText("Minimum salary")).toBeInTheDocument();
   });
+
+  it("lists entry and mid seniority options", () => {
+    renderPanel();
+
+    expect(screen.getByRole("button", { name: "Entry" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mid" })).toBeInTheDocument();
+  });
+
+  it("toggles the stated pay filter", () => {
+    const setFilters = vi.fn();
+    renderPanel(undefined, { setFilters });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Stated pay only" }));
+    expect(setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ salary_stated_only: true }),
+    );
+  });
 });
 
 describe("FiltersPanel URL round-trip for controls that changed type", () => {
@@ -215,10 +233,10 @@ describe("FiltersPanel URL round-trip for controls that changed type", () => {
     const setFilters = vi.fn();
     renderPanel(undefined, { setFilters });
 
-    fireEvent.click(screen.getByRole("button", { name: "Executive" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mid" }));
     const next = setFilters.mock.calls.at(-1)![0] as SearchFilters;
 
-    expect(next.seniority).toEqual(["Executive"]);
+    expect(next.seniority).toEqual(["Mid"]);
     expect(roundTrip(next)).toEqual(next);
   });
 
@@ -242,12 +260,15 @@ describe("FiltersPanel URL round-trip for controls that changed type", () => {
 
   it("restores a slider value from the URL without mutating it", () => {
     const params = new URLSearchParams(
-      "employment=Full+Time&seniority=Senior&salary=200000",
+      "employment=Full+Time&seniority=Senior&salary=200000&salary_stated=1",
     );
     const restored = filtersFromSearchParams(params);
     renderPanel(undefined, { filters: restored });
 
     expect(screen.getByText("$200,000")).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: "Stated pay only" }),
+    ).toBeChecked();
     expect(roundTrip(restored)).toEqual(restored);
   });
 });

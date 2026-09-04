@@ -18,6 +18,7 @@ const base: SearchFilters = {
   employment_types: [],
   providers: [],
   minimum_salary: null,
+  salary_stated_only: false,
   posted_within_days: null,
   sort: "relevance",
 };
@@ -36,6 +37,7 @@ describe("search-params", () => {
       hasSearchCriteria({ ...base, employment_types: ["Full Time"] }),
     ).toBe(true);
     expect(hasSearchCriteria({ ...base, minimum_salary: 100_000 })).toBe(true);
+    expect(hasSearchCriteria({ ...base, salary_stated_only: true })).toBe(true);
     expect(hasSearchCriteria({ ...base, posted_within_days: 7 })).toBe(true);
   });
   it("round-trips all meaningful filters through URL params", () => {
@@ -48,6 +50,7 @@ describe("search-params", () => {
       employment_types: ["Full Time", "Contractor"],
       providers: ["himalayas", "remoteok"],
       minimum_salary: 150000,
+      salary_stated_only: true,
       posted_within_days: 7,
       sort: "salary",
     };

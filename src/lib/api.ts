@@ -25,6 +25,7 @@ export type SearchFilters = {
   employment_types: string[];
   providers: string[];
   minimum_salary?: number | null;
+  salary_stated_only?: boolean;
   posted_within_days?: number | null;
   sort: SearchSort;
 };

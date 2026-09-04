@@ -83,6 +83,7 @@ export function countActiveFilters(filters: {
   seniority: string[];
   providers: string[];
   minimum_salary?: number | null;
+  salary_stated_only?: boolean;
   posted_within_days?: number | null;
   country?: string | null;
   worldwide?: boolean | null;
@@ -93,6 +94,7 @@ export function countActiveFilters(filters: {
     filters.seniority.length +
     filters.providers.length +
     Number(Boolean(filters.minimum_salary)) +
+    Number(filters.salary_stated_only) +
     Number(Boolean(filters.posted_within_days)) +
     Number(Boolean(filters.country || filters.worldwide)) +
     Number(Boolean(filters.location?.trim()))

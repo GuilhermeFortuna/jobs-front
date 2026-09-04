@@ -9,6 +9,7 @@ export const EMPTY_FILTERS: SearchFilters = {
   employment_types: [],
   providers: [],
   minimum_salary: null,
+  salary_stated_only: false,
   posted_within_days: null,
   sort: "relevance",
 };
@@ -25,6 +26,7 @@ export function hasSearchCriteria(filters: SearchFilters): boolean {
     filters.seniority.length ||
     filters.employment_types.length ||
     filters.minimum_salary !== null ||
+    filters.salary_stated_only === true ||
     filters.posted_within_days !== null,
   );
 }
@@ -58,6 +60,7 @@ export function hasUrlFilters(params: URLSearchParams): boolean {
     "employment",
     "providers",
     "salary",
+    "salary_stated",
     "posted",
     "sort",
   ].some((key) => params.has(key));
@@ -69,6 +72,7 @@ export function filtersFromSearchParams(
   const sortParam = params.get("sort");
   const worldwideParam = params.get("worldwide");
   const salaryParam = params.get("salary");
+  const salaryStatedParam = params.get("salary_stated");
   const postedParam = params.get("posted");
 
   return {
@@ -81,6 +85,7 @@ export function filtersFromSearchParams(
     employment_types: parseList(params.get("employment")),
     providers: parseList(params.get("providers")),
     minimum_salary: salaryParam ? Number(salaryParam) || null : null,
+    salary_stated_only: salaryStatedParam === "1",
     posted_within_days: postedParam ? Number(postedParam) || null : null,
     sort: sortParam && isSort(sortParam) ? sortParam : "relevance",
   };
@@ -105,6 +110,7 @@ export function searchParamsFromFilters(
   if (providers) params.set("providers", providers);
   if (filters.minimum_salary)
     params.set("salary", String(filters.minimum_salary));
+  if (filters.salary_stated_only) params.set("salary_stated", "1");
   if (filters.posted_within_days)
     params.set("posted", String(filters.posted_within_days));
   if (filters.sort !== "relevance") params.set("sort", filters.sort);
