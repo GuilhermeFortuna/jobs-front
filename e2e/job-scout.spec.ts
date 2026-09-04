@@ -52,6 +52,10 @@ async function installApiMock(
           return json(data.searchRefreshComplete, 202);
         }
 
+        if (url.endsWith("/searches") && method === "POST") {
+          return json(data.searchComplete, 202);
+        }
+
         if (url.includes("/searches/") && method === "GET") {
           return json(data.searchComplete);
         }
@@ -102,12 +106,26 @@ async function installApiMock(
   );
 }
 
+async function runExplicitSearch(page: Page) {
+  const searchButton = page
+    .locator("button:visible")
+    .filter({ hasText: "Search these roles" })
+    .first();
+  if (!(await searchButton.isVisible())) {
+    await page.getByRole("button", { name: "Open filters" }).click();
+  }
+  await expect(searchButton).toBeEnabled();
+  await searchButton.click();
+  await page.keyboard.press("Escape");
+}
+
 test.beforeEach(async ({ page }) => {
   await installApiMock(page);
 });
 
 test("discover search and save journey", async ({ page }) => {
   await page.goto("/");
+  await runExplicitSearch(page);
   await expect(
     page.getByRole("heading", { name: "Recommended roles" }),
   ).toBeVisible();
@@ -141,6 +159,7 @@ test("library state move and delete confirmation", async ({
   page,
 }, testInfo) => {
   await page.goto("/");
+  await runExplicitSearch(page);
   await expect(
     page.getByRole("heading", { name: "Staff Engineer" }).first(),
   ).toBeVisible({
@@ -194,6 +213,7 @@ test("library state move and delete confirmation", async ({
 test("mobile opens filter and detail sheets", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Mobile-only journey");
   await page.goto("/");
+  await runExplicitSearch(page);
   await expect(
     page.getByRole("heading", { name: "Staff Engineer" }).first(),
   ).toBeVisible({
@@ -229,6 +249,7 @@ test("profile isolation uses remembered profile id", async ({ page }) => {
   });
   await installApiMock(page);
   await page.goto("/");
+  await runExplicitSearch(page);
   await expect(
     page.getByRole("heading", { name: "Staff Engineer" }).first(),
   ).toBeVisible({ timeout: 15_000 });
@@ -245,6 +266,7 @@ test("shell exposes a single navigation and header ambient", async ({
 }) => {
   await installApiMock(page);
   await page.goto("/");
+  await runExplicitSearch(page);
   await expect(
     page.getByRole("heading", { name: "Staff Engineer" }).first(),
   ).toBeVisible({ timeout: 15_000 });
@@ -325,7 +347,9 @@ test("degraded search reads as partial and names the failed provider", async ({
     } as SearchRefreshFixture,
   });
   await page.goto("/");
+  await runExplicitSearch(page);
   const searchStatus = page.getByTestId("search-status");
+  await searchStatus.getByTestId("search-status-toggle").click();
   await expect(
     searchStatus
       .getByRole("status")
@@ -345,6 +369,7 @@ test("consolidated detail exposes every source and saves once", async ({
   page,
 }) => {
   await page.goto("/");
+  await runExplicitSearch(page);
   await expect(
     page.getByRole("heading", { name: "Staff Engineer" }).first(),
   ).toBeVisible({
@@ -383,6 +408,7 @@ test("provider filter offers only the providers the API reports", async ({
   page,
 }, testInfo) => {
   await page.goto("/");
+  await runExplicitSearch(page);
   await expect(
     page.getByRole("heading", { name: "Staff Engineer" }).first(),
   ).toBeVisible({ timeout: 15_000 });

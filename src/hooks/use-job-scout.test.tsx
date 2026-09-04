@@ -126,6 +126,20 @@ function install() {
   );
 }
 
+async function activateDefaultSearch(result: {
+  current: {
+    profile: Profile | null;
+    refreshDefaultSearch: () => Promise<void>;
+  };
+}) {
+  await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
+    timeout: 3000,
+  });
+  await act(async () => {
+    await result.current.refreshDefaultSearch();
+  });
+}
+
 beforeEach(() => {
   localStorage.clear();
   window.history.replaceState(null, "", "/");
@@ -202,6 +216,7 @@ describe("useJobScout boot", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
 
     await waitFor(() => expect(result.current.statusKind).toBe("partial"), {
       timeout: 3000,
@@ -223,6 +238,7 @@ describe("useJobScout boot", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
 
     await waitFor(() => expect(result.current.statusKind).toBe("failed"), {
       timeout: 3000,
@@ -277,6 +293,7 @@ describe("useJobScout default-search refresh", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -309,7 +326,8 @@ describe("useJobScout default-search refresh", () => {
         : undefined,
     );
 
-    renderHook(() => useJobScout());
+    const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
 
     await waitFor(
       () =>
@@ -356,6 +374,7 @@ describe("useJobScout retry and library", () => {
     await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
       timeout: 3000,
     });
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -375,6 +394,7 @@ describe("useJobScout retry and library", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -418,6 +438,7 @@ describe("useJobScout retry and library", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -472,6 +493,7 @@ describe("useJobScout retry and library", () => {
     });
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -522,6 +544,7 @@ describe("useJobScout pagination", () => {
     );
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -579,6 +602,7 @@ describe("useJobScout pagination", () => {
     });
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });
@@ -647,6 +671,7 @@ describe("useJobScout pagination", () => {
     });
 
     const { result } = renderHook(() => useJobScout());
+    await activateDefaultSearch(result);
     await waitFor(() => expect(result.current.jobs.length).toBe(1), {
       timeout: 3000,
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -295,18 +295,25 @@ export function SearchStatus({
   const narrow = useNarrowViewport();
   const expressive =
     loading && view === "discover" && !reducedMotion && !narrow;
-  const settled = view === "discover" && !loading && isSettledStatus(statusKind);
+  const settled =
+    view === "discover" && !loading && isSettledStatus(statusKind);
   const [detailsOpen, setDetailsOpen] = useState(() => !settled);
+  const detailsInitialized = useRef(false);
 
   useEffect(() => {
     if (view !== "discover") return;
-    if (loading) {
-      setDetailsOpen(true);
+    if (!detailsInitialized.current) {
+      detailsInitialized.current = true;
       return;
     }
-    if (isSettledStatus(statusKind)) {
-      setDetailsOpen(false);
-    }
+    const timer = window.setTimeout(() => {
+      if (loading) {
+        setDetailsOpen(true);
+      } else if (isSettledStatus(statusKind)) {
+        setDetailsOpen(false);
+      }
+    });
+    return () => window.clearTimeout(timer);
   }, [loading, statusKind, view]);
 
   const failedProviders = providerStatuses.filter(
@@ -335,15 +342,11 @@ export function SearchStatus({
   );
 
   const showDetailsToggle =
-    view === "discover" &&
-    (providerStatuses.length > 0 || settled || loading);
+    view === "discover" && (providerStatuses.length > 0 || settled || loading);
 
   return (
     <div
-      className={cn(
-        "border-b bg-surface px-5",
-        detailsOpen ? "py-5" : "py-3",
-      )}
+      className={cn("border-b bg-surface px-5", detailsOpen ? "py-5" : "py-3")}
       data-testid="search-status"
       data-collapsed={detailsOpen ? undefined : "true"}
     >
@@ -371,7 +374,10 @@ export function SearchStatus({
             aria-hidden="true"
           />
         )}
-        <span className="min-w-0 flex-1 break-words" data-testid="search-notice">
+        <span
+          className="min-w-0 flex-1 break-words"
+          data-testid="search-notice"
+        >
           {stripNotice}
         </span>
         {checked > 0 && view === "discover" && (

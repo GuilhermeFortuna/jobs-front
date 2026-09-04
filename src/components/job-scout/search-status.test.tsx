@@ -80,7 +80,9 @@ describe("SearchStatus", () => {
     expect(
       screen.queryByTestId("status-banner-partial"),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("provider-status-list")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("provider-status-list"),
+    ).not.toBeInTheDocument();
 
     await expandDetails();
 
@@ -140,7 +142,9 @@ describe("SearchStatus", () => {
         "true",
       );
     });
-    expect(screen.queryByTestId("provider-status-list")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("provider-status-list"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search progress")).not.toBeInTheDocument();
     expect(screen.getByTestId("search-notice")).toHaveTextContent(
       "Search complete · 12 matching roles",

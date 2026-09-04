@@ -2,7 +2,7 @@
  * Capture JE-016 design references at project viewports.
  * Run: CAPTURE_REFS=1 pnpm exec playwright test e2e/capture-design-refs.spec.ts
  */
-import { test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 
 import { fixtures } from "./fixtures";
@@ -49,6 +49,10 @@ async function installApiMock(page: Page) {
           return json(data.searchRefreshComplete, 202);
         }
 
+        if (url.endsWith("/searches") && method === "POST") {
+          return json(data.searchComplete, 202);
+        }
+
         if (url.includes("/searches/") && method === "GET") {
           return json(data.searchComplete);
         }
@@ -82,6 +86,19 @@ async function installApiMock(page: Page) {
   );
 }
 
+async function runExplicitSearch(page: Page) {
+  const searchButton = page
+    .locator("button:visible")
+    .filter({ hasText: "Search these roles" })
+    .first();
+  if (!(await searchButton.isVisible())) {
+    await page.getByRole("button", { name: "Open filters" }).click();
+  }
+  await expect(searchButton).toBeEnabled();
+  await searchButton.click();
+  await page.keyboard.press("Escape");
+}
+
 test.describe("design reference capture", () => {
   test.skip(
     !process.env.CAPTURE_REFS,
@@ -96,6 +113,7 @@ test.describe("design reference capture", () => {
       localStorage.setItem("job-scout-theme", "light");
     });
     await page.goto("/");
+    await runExplicitSearch(page);
     await page
       .getByRole("heading", { name: "Staff Engineer" })
       .first()
@@ -124,6 +142,7 @@ test.describe("design reference capture", () => {
       localStorage.setItem("job-scout-theme", "light");
     });
     await page.goto("/");
+    await runExplicitSearch(page);
     await page
       .getByRole("heading", { name: "Staff Engineer" })
       .first()

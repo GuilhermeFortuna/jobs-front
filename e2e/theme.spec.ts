@@ -42,6 +42,10 @@ async function installApiMock(page: Page) {
           return json(data.searchRefreshComplete, 202);
         }
 
+        if (url.endsWith("/searches") && method === "POST") {
+          return json(data.searchComplete, 202);
+        }
+
         if (url.includes("/searches/") && method === "GET") {
           return json(data.searchComplete);
         }
@@ -73,6 +77,19 @@ async function chooseTheme(page: Page, label: "Light" | "Dark" | "System") {
   await expect(option).toBeVisible();
   await option.click({ force: true });
   await expect(page.getByRole("menu")).toHaveCount(0);
+}
+
+async function runExplicitSearch(page: Page) {
+  const searchButton = page
+    .locator("button:visible")
+    .filter({ hasText: "Search these roles" })
+    .first();
+  if (!(await searchButton.isVisible())) {
+    await page.getByRole("button", { name: "Open filters" }).click();
+  }
+  await expect(searchButton).toBeEnabled();
+  await searchButton.click();
+  await page.keyboard.press("Escape");
 }
 
 test.describe("theme switching", () => {
@@ -116,6 +133,7 @@ test.describe("theme switching", () => {
   test("theme toggle switches light, dark, and system", async ({ page }) => {
     await installApiMock(page);
     await page.goto("/");
+    await runExplicitSearch(page);
     await expect(
       page.getByRole("heading", { name: "Staff Engineer" }).first(),
     ).toBeVisible({ timeout: 15_000 });
