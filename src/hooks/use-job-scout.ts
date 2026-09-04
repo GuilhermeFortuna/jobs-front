@@ -27,6 +27,7 @@ import {
 } from "@/lib/search-notice";
 import {
   EMPTY_FILTERS,
+  hasSearchCriteria,
   hasUrlFilters,
   resolveInitialFilters,
   syncFiltersToUrl,
@@ -229,6 +230,11 @@ export function useJobScout() {
         return;
       }
       const activeFilters = nextFilters ?? filters;
+      if (!hasSearchCriteria(activeFilters)) {
+        setStatusKind("validation");
+        setNotice("Add at least one job criterion before searching");
+        return;
+      }
       cancelPolling();
       const generation = pollGeneration.current;
       setPageState(1);
@@ -270,6 +276,11 @@ export function useJobScout() {
 
   const refreshDefaultSearch = useCallback(async () => {
     if (!profile) return;
+    if (!hasSearchCriteria(profile.preferences)) {
+      setStatusKind("validation");
+      setNotice("Save at least one job criterion before refreshing defaults");
+      return;
+    }
     cancelPolling();
     const generation = pollGeneration.current;
     setPageState(1);
@@ -573,17 +584,14 @@ export function useJobScout() {
           current.map((item) => (item.id === updated.id ? updated : item)),
         );
         setProfileState(updated);
-        notifyAction("Skills updated · re-ranking search");
-        if (view === "discover") {
-          await runSearch();
-        }
+        notifyAction("Skills updated · run Search to apply the new ranking");
         return updated;
       } catch (error) {
         setNotice(formatApiError(error));
         throw error;
       }
     },
-    [notifyAction, profile, runSearch, view],
+    [notifyAction, profile],
   );
 
   const initializeFromApi = useCallback(async () => {
@@ -618,48 +626,20 @@ export function useJobScout() {
     previousProfileId.current = current.id;
 
     cancelPolling();
-    const pollGen = pollGeneration.current;
     setPageState(1);
     pageRef.current = 1;
-    setLoading(true);
+    setLoading(false);
     setSearchExpired(false);
-    setStatusKind("loading");
-
-    if (hasUrlFilters(urlParams)) {
-      setNotice("Starting search");
-      const result = await api.startSearch(current.id, initialFilters);
-      if (
-        generation !== initGeneration.current ||
-        pollGen !== pollGeneration.current
-      ) {
-        return;
-      }
-      applySearchPage(result);
-      if (!result.is_complete) {
-        await pollSearch(result.search_id, pollGen, current.id);
-      } else {
-        setLoading(false);
-      }
-      return;
-    }
-
-    setNotice("Refreshing default search");
-    const result = await api.refreshDefaultSearch(current.id);
-    if (
-      generation !== initGeneration.current ||
-      pollGen !== pollGeneration.current
-    ) {
-      return;
-    }
-    applySearchPage(result, { keepStale: true });
-    if (!result.is_complete) {
-      await pollSearch(result.search_id, pollGen, current.id, {
-        keepStale: true,
-      });
-    } else {
-      setLoading(false);
-    }
-  }, [applySearchPage, cancelPolling, pollSearch]);
+    setStatusKind("idle");
+    setSearchId(null);
+    setJobs([]);
+    setSelected(null);
+    setTotal(null);
+    setWarnings([]);
+    setProviderStatuses([]);
+    setProgress(0);
+    setChecked(0);
+  }, [cancelPolling]);
 
   const retryConnection = useCallback(async () => {
     try {
@@ -670,9 +650,10 @@ export function useJobScout() {
         await initializeFromApi();
         return;
       }
-      setNotice("Connected · refreshing search");
       if (view === "discover") {
-        await refreshDefaultSearch();
+        setLoading(false);
+        setStatusKind("idle");
+        setNotice("Connected · ready to search");
       } else {
         await loadLibrary(view);
       }
@@ -681,7 +662,7 @@ export function useJobScout() {
       setStatusKind("offline");
       setNotice("Backend is still offline");
     }
-  }, [initializeFromApi, loadLibrary, profile, refreshDefaultSearch, view]);
+  }, [initializeFromApi, loadLibrary, profile, view]);
 
   useEffect(() => {
     let active = true;
@@ -742,8 +723,18 @@ export function useJobScout() {
           FALLBACK_FILTERS,
         );
     setFiltersState(nextFilters);
-    void runSearch(nextFilters);
-  }, [booted, cancelPolling, profile, runSearch]);
+    setLoading(false);
+    setSearchId(null);
+    setJobs([]);
+    setSelected(null);
+    setTotal(null);
+    setWarnings([]);
+    setProviderStatuses([]);
+    setProgress(0);
+    setChecked(0);
+    setStatusKind("idle");
+    setNotice("Ready to search");
+  }, [booted, cancelPolling, profile]);
 
   return {
     providers,
@@ -768,6 +759,9 @@ export function useJobScout() {
     statusKind,
     apiOnline,
     searchExpired,
+    canRefreshDefaultSearch: Boolean(
+      profile && hasSearchCriteria(profile.preferences),
+    ),
     profileFallbackNotice,
     deleteTarget,
     setDeleteTarget,

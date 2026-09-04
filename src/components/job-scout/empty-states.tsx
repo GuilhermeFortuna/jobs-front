@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bookmark, BriefcaseBusiness } from "lucide-react";
+import { Bookmark, BriefcaseBusiness, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BlurFade } from "@/components/ui/blur-fade";
@@ -65,11 +65,15 @@ export function EmptyState({
   statusKind,
   onDiscover,
   onRetry,
+  onSearch,
+  searchEnabled = true,
 }: {
   view: "discover" | "saved" | "applied";
   statusKind?: string;
   onDiscover: () => void;
   onRetry?: () => void;
+  onSearch?: () => void;
+  searchEnabled?: boolean;
 }) {
   if (view === "discover" && statusKind === "offline") {
     return (
@@ -111,6 +115,50 @@ export function EmptyState({
               Try broader keywords, fewer filters, or a lower salary floor.
             </EmptyDescription>
           </EmptyHeader>
+        </Empty>
+      </EmptyMotion>
+    );
+  }
+
+  if (view === "discover" && statusKind === "idle") {
+    return (
+      <EmptyMotion>
+        <Empty className="mx-auto max-w-sm border-0 px-6 py-20">
+          <EmptyHeader>
+            <EmptyMedia
+              variant="icon"
+              className="size-12 rounded-2xl bg-primary-soft text-primary-emphasis dark:text-primary"
+            >
+              <Search />
+            </EmptyMedia>
+            <EmptyTitle className="mt-4 text-lg font-semibold">
+              No search has run
+            </EmptyTitle>
+            <EmptyDescription className="mt-2 text-sm leading-6">
+              Add a job criterion, then start an explicit search when you are
+              ready.
+            </EmptyDescription>
+          </EmptyHeader>
+          {onSearch ? (
+            <EmptyContent>
+              <Button
+                type="button"
+                className="mt-5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                onClick={onSearch}
+                disabled={!searchEnabled}
+                aria-describedby={
+                  !searchEnabled ? "idle-search-criteria-help" : undefined
+                }
+              >
+                Search roles
+              </Button>
+              {!searchEnabled ? (
+                <p id="idle-search-criteria-help" className="sr-only">
+                  Add a job criterion before searching.
+                </p>
+              ) : null}
+            </EmptyContent>
+          ) : null}
         </Empty>
       </EmptyMotion>
     );

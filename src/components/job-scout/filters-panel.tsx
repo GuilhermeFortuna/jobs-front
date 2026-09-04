@@ -32,6 +32,7 @@ import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ProviderDescriptor, SearchFilters } from "@/lib/api";
 import { DEFAULT_FILTERS } from "@/hooks/use-job-scout";
+import { hasSearchCriteria } from "@/lib/search-params";
 import { formatProviderName, KNOWN_PROVIDER_KEYS } from "@/lib/providers";
 import { cn } from "@/lib/utils";
 
@@ -147,6 +148,7 @@ export function FiltersPanel({
   disabled,
   providers,
 }: FiltersPanelProps) {
+  const canSearch = hasSearchCriteria(filters);
   const toggleList = (
     field: "employment_types" | "seniority" | "providers",
     value: string,
@@ -400,7 +402,8 @@ export function FiltersPanel({
       <Button
         className="h-10 w-full rounded-xl bg-primary hover:bg-primary-hover"
         onClick={onSearch}
-        disabled={disabled}
+        disabled={disabled || !canSearch}
+        aria-describedby={!canSearch ? "search-criteria-help" : undefined}
       >
         <SlidersHorizontal />
         Search these roles
@@ -416,6 +419,13 @@ export function FiltersPanel({
       </Button>
       <p className="text-xs leading-5 text-muted-foreground">
         Defaults belong only to the selected profile.
+      </p>
+      <p
+        id="search-criteria-help"
+        className="text-xs leading-5 text-muted-foreground"
+      >
+        Add keywords, a location, eligibility, seniority, employment type, a
+        salary floor, or posting age to search.
       </p>
     </div>
   );

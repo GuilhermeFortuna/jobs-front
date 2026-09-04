@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   filtersFromSearchParams,
+  hasSearchCriteria,
   hasUrlFilters,
   resolveInitialFilters,
   searchParamsFromFilters,
@@ -22,6 +23,21 @@ const base: SearchFilters = {
 };
 
 describe("search-params", () => {
+  it("requires a substantive criterion rather than provider or sort state", () => {
+    expect(hasSearchCriteria(base)).toBe(false);
+    expect(hasSearchCriteria({ ...base, providers: ["remoteok"] })).toBe(false);
+    expect(hasSearchCriteria({ ...base, sort: "newest" })).toBe(false);
+    expect(hasSearchCriteria({ ...base, query: "python" })).toBe(true);
+    expect(hasSearchCriteria({ ...base, location: "Lisbon" })).toBe(true);
+    expect(hasSearchCriteria({ ...base, country: "Brazil" })).toBe(true);
+    expect(hasSearchCriteria({ ...base, worldwide: true })).toBe(true);
+    expect(hasSearchCriteria({ ...base, seniority: ["Senior"] })).toBe(true);
+    expect(
+      hasSearchCriteria({ ...base, employment_types: ["Full Time"] }),
+    ).toBe(true);
+    expect(hasSearchCriteria({ ...base, minimum_salary: 100_000 })).toBe(true);
+    expect(hasSearchCriteria({ ...base, posted_within_days: 7 })).toBe(true);
+  });
   it("round-trips all meaningful filters through URL params", () => {
     const filters: SearchFilters = {
       query: "staff engineer",

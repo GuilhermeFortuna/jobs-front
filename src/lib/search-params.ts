@@ -13,6 +13,22 @@ export const EMPTY_FILTERS: SearchFilters = {
   sort: "relevance",
 };
 
+/** Whether filters authorize an upstream provider search rather than only
+ * changing local ordering or provider scope. Kept in sync with the API rule.
+ */
+export function hasSearchCriteria(filters: SearchFilters): boolean {
+  return Boolean(
+    filters.query.trim() ||
+    filters.location.trim() ||
+    filters.country ||
+    filters.worldwide === true ||
+    filters.seniority.length ||
+    filters.employment_types.length ||
+    filters.minimum_salary !== null ||
+    filters.posted_within_days !== null,
+  );
+}
+
 const SORT_VALUES: SearchSort[] = ["relevance", "newest", "salary"];
 
 function isSort(value: string): value is SearchSort {

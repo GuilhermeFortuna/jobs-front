@@ -144,52 +144,35 @@ afterEach(() => {
 });
 
 describe("useJobScout boot", () => {
-  it("searches with the filters restored from the URL", async () => {
+  it("restores URL filters without starting a search", async () => {
     window.history.replaceState(null, "", "/?q=designer&salary=200000");
-    handlers.push((route) =>
-      route.path === "/searches" && route.method === "POST"
-        ? searchPage({ items: [job("url-1", "Designer role")] })
-        : undefined,
-    );
-    handlers.push((route) =>
-      route.path.endsWith("/default-search/refresh")
-        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
-        : undefined,
-    );
 
     const { result } = renderHook(() => useJobScout());
 
-    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+    await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
       timeout: 3000,
     });
-    const started = routes.find(
-      (route) => route.path === "/searches" && route.method === "POST",
-    );
-    expect(started).toBeDefined();
-    expect(started?.body).toMatchObject({
-      profile_id: PROFILE_ID,
-      filters: { query: "designer", minimum_salary: 200000 },
+    expect(result.current.filters).toMatchObject({
+      query: "designer",
+      minimum_salary: 200000,
     });
+    expect(routes.some((route) => route.path === "/searches")).toBe(false);
     expect(
       routes.some((route) => route.path.endsWith("/default-search/refresh")),
     ).toBe(false);
   });
 
-  it("uses the profile default search when the URL has no filters", async () => {
-    handlers.push((route) =>
-      route.path.endsWith("/default-search/refresh")
-        ? searchPage({ serving_search_id: STALE_SEARCH_ID })
-        : undefined,
-    );
-
+  it("restores meaningful profile defaults without refreshing", async () => {
     const { result } = renderHook(() => useJobScout());
 
-    await waitFor(() => expect(result.current.jobs.length).toBe(1), {
+    await waitFor(() => expect(result.current.profile?.id).toBe(PROFILE_ID), {
       timeout: 3000,
     });
+    expect(result.current.filters.query).toBe("profile default");
+    expect(routes.some((route) => route.path === "/searches")).toBe(false);
     expect(
       routes.some((route) => route.path.endsWith("/default-search/refresh")),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("reports a partial search when a provider fails but results remain", async () => {

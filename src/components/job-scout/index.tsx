@@ -49,6 +49,7 @@ import { useJobScout } from "@/hooks/use-job-scout";
 import type { SearchFilters } from "@/lib/api";
 import { DETAIL_PANE_BREAKPOINT_PX } from "@/lib/breakpoints";
 import { countActiveFilters, jobKey } from "@/lib/job-utils";
+import { hasSearchCriteria } from "@/lib/search-params";
 
 const SKELETON_COUNT = 5;
 
@@ -136,7 +137,9 @@ export function JobScout() {
                     })
                   }
                   onKeyDown={(event) =>
-                    event.key === "Enter" && void scout.runSearch()
+                    event.key === "Enter" &&
+                    hasSearchCriteria(scout.filters) &&
+                    void scout.runSearch()
                   }
                 />
               </InputGroup>
@@ -252,6 +255,7 @@ export function JobScout() {
             searchExpired={scout.searchExpired}
             onRetry={() => void scout.retryConnection()}
             onRefresh={() => void scout.refreshDefaultSearch()}
+            refreshEnabled={scout.canRefreshDefaultSearch}
             onRunSearch={() => void scout.runSearch()}
           />
 
@@ -292,6 +296,8 @@ export function JobScout() {
                   statusKind={scout.statusKind}
                   onDiscover={() => void scout.changeView("discover")}
                   onRetry={() => void scout.retryConnection()}
+                  onSearch={() => void scout.runSearch()}
+                  searchEnabled={hasSearchCriteria(scout.filters)}
                 />
               )}
 

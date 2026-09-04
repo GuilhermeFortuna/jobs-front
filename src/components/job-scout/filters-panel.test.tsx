@@ -154,7 +154,7 @@ describe("FiltersPanel actions and upgraded controls", () => {
     const onSaveDefaults = vi.fn();
     render(
       <FiltersPanel
-        filters={DEFAULT_FILTERS}
+        filters={{ ...DEFAULT_FILTERS, query: "designer" }}
         setFilters={vi.fn()}
         onSearch={onSearch}
         onSaveDefaults={onSaveDefaults}

@@ -40,6 +40,7 @@ type SearchStatusProps = {
   searchExpired: boolean;
   onRetry?: () => void;
   onRefresh?: () => void;
+  refreshEnabled?: boolean;
   onRunSearch?: () => void;
 };
 
@@ -276,6 +277,7 @@ export function SearchStatus({
   searchExpired,
   onRetry,
   onRefresh,
+  refreshEnabled = true,
   onRunSearch,
 }: SearchStatusProps) {
   const reducedMotion = usePrefersReducedMotion();
@@ -348,6 +350,10 @@ export function SearchStatus({
                   variant="ghost"
                   className="ml-auto h-8 rounded-lg text-primary-emphasis dark:text-primary"
                   onClick={onRefresh}
+                  disabled={!refreshEnabled}
+                  aria-describedby={
+                    !refreshEnabled ? "refresh-criteria-help" : undefined
+                  }
                   aria-label="Refresh default search"
                 >
                   <RefreshCw className="size-3.5" />
@@ -358,6 +364,11 @@ export function SearchStatus({
           </Tooltip>
         )}
       </div>
+      {!refreshEnabled && view === "discover" && onRefresh ? (
+        <p id="refresh-criteria-help" className="sr-only">
+          Save actionable defaults before refreshing the provider search.
+        </p>
+      ) : null}
 
       {view === "discover" && providerStatuses.length > 0 && (
         <ul
